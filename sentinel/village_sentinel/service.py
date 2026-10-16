@@ -23,7 +23,7 @@ from evidence_first_tool_router import DeciderReading, Route, RouterConfig, Tier
 from .bedrock_client import BedrockClient, BedrockUnavailable
 from .decider_client import DeciderClient, DeciderUnavailable
 from .ledger import BudgetExceeded, Ledger
-from .projection import options_for, projected_with_hash
+from .projection import options_for, projected_with_hash, render_state_text, sha256_hex
 
 MODES = ("decider", "bedrock", "hybrid")
 DEFAULT_BUDGET_UUSD = 22_000_000  # $22.00 of a $25 allocation
@@ -51,14 +51,15 @@ class Sentinel:
         allowed = list(state["allowedActions"])
         criteria = options_for(state)
         session_key = f"{request.get('caseId','?')}:{request['you']['id']}"
-        trace: dict[str, Any] = {"mode": mode, "input_hash": input_hash, "allowed": allowed, "threshold": self.config.threshold}
+        prompt_text = render_state_text(state)
+        trace: dict[str, Any] = {"mode": mode, "input_hash": input_hash, "prompt_sha256": sha256_hex(prompt_text), "allowed": allowed, "threshold": self.config.threshold}
 
         action, summary, usage = None, "", {"inputTokens": 0, "outputTokens": 0, "costUSD": 0.0}
         if mode == "bedrock":
-            action, summary, usage = self._escalate(state, state_text, allowed, key, trace)
+            action, summary, usage = self._escalate(prompt_text, state_text, allowed, key, trace)
             trace["tier"] = 3
         else:
-            reading = self._read(state, criteria, trace)
+            reading = self._read(prompt_text, criteria, trace)
             investigation_allowed = "check_evidence" in allowed
             done = self.ledger.investigations(session_key)
             cfg = self.config if mode == "hybrid" else RouterConfig(**{**self.config.__dict__, "escalate": False})
@@ -66,7 +67,7 @@ class Sentinel:
                 # Decider unavailable: hybrid escalates, decider-only falls back to the safe tool.
                 trace["decider_error"] = True
                 if mode == "hybrid":
-                    action, summary, usage = self._escalate(state, state_text, allowed, key, trace)
+                    action, summary, usage = self._escalate(prompt_text, state_text, allowed, key, trace)
                     trace["tier"] = 3
                 else:
                     action = FALLBACK_TOOL if FALLBACK_TOOL in allowed else allowed[0]
@@ -88,7 +89,7 @@ class Sentinel:
                     action = r.tool
                     summary = f"Decider {r.confidence:.2f} confident" + (" (degraded: no escalation)." if r.degraded else ".")
                 else:
-                    action, summary, usage = self._escalate(state, state_text, allowed, key, trace, reading=reading)
+                    action, summary, usage = self._escalate(prompt_text, state_text, allowed, key, trace, reading=reading)
         total_ms = (time.perf_counter() - t0) * 1000.0
         trace["total_latency_ms"] = round(total_ms, 3)
         answer = {
@@ -101,7 +102,7 @@ class Sentinel:
         self.ledger.put_trace(key, input_hash, state_text, mode, trace)
         return self.ledger.put_decision(key, input_hash, mode, answer)
 
-    def _read(self, state: dict[str, Any], criteria: dict[str, str], trace: dict[str, Any]) -> DeciderReading | None:
+    def _read(self, state, criteria: dict[str, str], trace: dict[str, Any]) -> DeciderReading | None:
         if self.decider is None:
             trace["decider"] = {"error": "not configured"}
             return None

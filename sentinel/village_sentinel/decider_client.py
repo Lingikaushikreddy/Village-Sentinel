@@ -65,13 +65,13 @@ class DeciderClient:
         self.device = dev
         self.backend = f"in-process:{dev}"
 
-    def _ask_inprocess(self, state: dict[str, Any], criteria: dict[str, str]) -> tuple[dict[str, float], int]:
+    def _ask_inprocess(self, state, criteria: dict[str, str]) -> tuple[dict[str, float], int]:
         from strands_decider.schema import ChoiceQuestion
         resp = self._engine.ask(state, {"action": ChoiceQuestion(instructions=INSTRUCTIONS, criteria=criteria)})
         ans = resp.answers["action"]
         return dict(ans.probabilities), int(resp.usage.input_tokens)
 
-    def _ask_http(self, state: dict[str, Any], criteria: dict[str, str]) -> tuple[dict[str, float], int]:
+    def _ask_http(self, state, criteria: dict[str, str]) -> tuple[dict[str, float], int]:
         body = json.dumps({"state": state, "questions": {"action": {"type": "choice", "instructions": INSTRUCTIONS, "criteria": criteria}}}).encode()
         req = urllib.request.Request(self.url.rstrip("/") + "/v1/systemone", data=body, headers={"content-type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=self.timeout_s) as r:
@@ -79,7 +79,9 @@ class DeciderClient:
         ans = data["answers"]["action"]
         return dict(ans["probabilities"]), int(data.get("usage", {}).get("input_tokens", 0))
 
-    def ask(self, state: dict[str, Any], criteria: dict[str, str]) -> DeciderAnswer:
+    def ask(self, state: "dict[str, Any] | str", criteria: dict[str, str]) -> DeciderAnswer:
+        """`state` may be the projected dict (rendered by Strands as indented JSON) or an
+        already-rendered string (the service passes `render_state_text(state)`)."""
         from evidence_first_tool_router import DeciderReading
         started = time.perf_counter()
         fn = self._ask_http if self.url else self._ask_inprocess

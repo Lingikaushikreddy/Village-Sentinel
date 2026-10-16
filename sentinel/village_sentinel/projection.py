@@ -21,6 +21,12 @@ FORBIDDEN_KEYS = frozenset({
 })
 # Top-level request keys the projection reads. Anything else is dropped.
 ALLOWED_TOP = ("tick", "you", "observation", "claim", "actionMeaning", "allowedActions")
+# A resident's working memory: only the most recent entries reach the model. Older
+# observations are routine walk/eat/gather notes; the inspection result and the claim
+# are always among the newest. Measured on real traffic this cuts prompts from ~1,370
+# to a few hundred tokens (docs/EVALUATION.md).
+MAX_MEMORIES = 12
+MAX_PUBLIC_CLAIMS = 6
 
 ACTION_DESCRIPTIONS = {
     "accept_claim": "Act on the claim as true: for an offer, trade with the proposer; for an allegation, refuse the accused seller.",
@@ -63,8 +69,8 @@ def project(request: dict[str, Any]) -> dict[str, Any]:
         }),
         "neighbors": [{"name": n.get("name"), "location": n.get("location")} for n in obs.get("neighbors") or []],
         "location": _scrub(obs.get("location") or {}),
-        "memories": [{"tick": m.get("tick"), "type": m.get("type"), "text": m.get("text")} for m in obs.get("memories") or []],
-        "publicClaims": [{"tick": c.get("tick"), "speaker": c.get("speaker"), "text": c.get("text")} for c in obs.get("publicClaims") or []],
+        "memories": [{"tick": m.get("tick"), "type": m.get("type"), "text": m.get("text")} for m in (obs.get("memories") or [])[-MAX_MEMORIES:]],
+        "publicClaims": [{"tick": c.get("tick"), "speaker": c.get("speaker"), "text": c.get("text")} for c in (obs.get("publicClaims") or [])[-MAX_PUBLIC_CLAIMS:]],
         "publicRules": list(obs.get("publicRules") or []),
         "claim": str(request["claim"]),
         "actionMeaning": str(request["actionMeaning"]),
@@ -90,6 +96,34 @@ def projected_with_hash(request: dict[str, Any]) -> tuple[dict[str, Any], str, s
     assert_hermetic(state)
     text = canonical_json(state)
     return state, text, sha256_hex(text)
+
+
+def render_state_text(state: dict[str, Any]) -> str:
+    """Deterministic terse rendering of a projected state: the bytes both models read.
+
+    Measured on real traffic the Decider prompt drops from ~1,100 tokens (indented JSON)
+    to ~560 with no fact removed. A pure function of the projected state, so a verifier
+    can recompute it from the stored state and `prompt_sha256`.
+    """
+    st = state
+    inv = ", ".join(f"{v} {k}" for k, v in sorted((st["self"].get("inventory") or {}).items()))
+    stock = ", ".join(f"{v} {k}" for k, v in sorted((st["location"].get("stock") or {}).items()) if v) or "nothing"
+    trust = st["self"].get("trust")
+    lines = [
+        f"You are {st['you']['name']}, a {st['you']['occupation']}, at the {st['self'].get('location')} on tick {st['tick']}.",
+        f"Inventory: {inv}. Hunger {st['self'].get('hunger')}, trust {trust:.2f}." if isinstance(trust, (int, float)) else f"Inventory: {inv}. Hunger {st['self'].get('hunger')}.",
+        "Here too: " + (", ".join(str(x.get("name")) for x in st["neighbors"]) or "nobody") + ".",
+        f"{st['location'].get('name')} stock: {stock}.",
+        "Rules: " + " ".join(st["publicRules"]),
+        "Recent memories:",
+        *[f"- t{m.get('tick')} {m.get('type')}: {m.get('text')}" for m in st["memories"]],
+        "Public claims:",
+        *[f"- t{c.get('tick')} {c.get('speaker')}: {c.get('text')}" for c in st["publicClaims"]],
+        f"CLAIM TO EVALUATE: {st['claim']}",
+        f"Action meaning: {st['actionMeaning']}",
+        f"Allowed actions: {', '.join(st['allowedActions'])}.",
+    ]
+    return "\n".join(lines)
 
 
 def options_for(state: dict[str, Any]) -> dict[str, str]:

@@ -65,3 +65,13 @@ class Projection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TerseRendering(unittest.TestCase):
+    def test_deterministic_and_complete(self):
+        from village_sentinel.projection import render_state_text
+        a = render_state_text(project(REQ)); b = render_state_text(project(json.loads(json.dumps(REQ))))
+        self.assertEqual(a, b)
+        for must in ("You are Mira, a Farmer", "12 coins", "Rook", "10 grain", "Normal grain price", "CLAIM TO EVALUATE: The granary is almost empty", "accept_claim, reject_claim, check_evidence"):
+            self.assertIn(must, a)
+        self.assertNotIn("c_9f2a71c4", a)

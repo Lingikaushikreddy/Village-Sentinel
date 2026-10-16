@@ -19,7 +19,7 @@ from pathlib import Path
 
 from evidence_first_tool_router.calibration import choose_threshold, expected_calibration_error
 from village_sentinel.decider_client import DeciderClient
-from village_sentinel.projection import options_for, projected_with_hash
+from village_sentinel.projection import options_for, projected_with_hash, render_state_text
 
 
 def main() -> None:
@@ -39,7 +39,7 @@ def main() -> None:
     t_all = time.perf_counter()
     for i, row in enumerate(rows):
         state, text, h = projected_with_hash(row["request"])
-        ans = client.ask(state, options_for(state))
+        ans = client.ask(render_state_text(state), options_for(state))
         safe = ans.choice == row["label"] or (not row["verified"] and ans.choice == "check_evidence")
         readings.append({
             "scenario": row["scenario"], "kind": row["kind"], "verified": row["verified"], "label": row["label"], "input_hash": h,
@@ -56,6 +56,9 @@ def main() -> None:
     prof_safe = choose_threshold(safe_pairs, target_precision=a.target_precision)
     prof_strict = choose_threshold(strict_pairs, target_precision=a.target_precision)
     prof_verified = choose_threshold(verified_pairs, target_precision=a.target_precision) if verified_pairs else None
+    # The threshold the service ships: smallest grid value at which every verified decision
+    # (accept/reject, where a wrong dispatch costs coins) above it was correct.
+    prof_perfect = choose_threshold(verified_pairs, target_precision=1.0) if verified_pairs else None
 
     per_scenario = defaultdict(lambda: {"n": 0, "strict_correct": 0, "safe": 0, "choices": defaultdict(int), "mean_conf": 0.0})
     for r in readings:
@@ -67,6 +70,7 @@ def main() -> None:
     out = {
         "n": len(readings), "backend": client.backend, "target_precision": a.target_precision,
         "threshold_safe": prof_safe.to_dict(), "threshold_strict": prof_strict.to_dict(), "threshold_verified_only": prof_verified.to_dict() if prof_verified else None,
+        "threshold_recommended": prof_perfect.to_dict() if prof_perfect else None,
         "ece_safe": prof_safe.ece, "ece_strict": prof_strict.ece,
         "latency_ms": {"median": statistics.median(lat), "p90": lat[int(0.9 * (len(lat) - 1))], "min": lat[0], "max": lat[-1], "n": len(lat)},
         "input_tokens": {"median": statistics.median(r["input_tokens"] for r in readings), "max": max(r["input_tokens"] for r in readings)},

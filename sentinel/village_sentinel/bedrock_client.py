@@ -99,7 +99,8 @@ class BedrockClient:
     def estimate_uusd(self, state_text: str) -> int:
         return micro_usd(estimate_tokens(state_text), MAX_OUTPUT_TOKENS)
 
-    def decide(self, state: dict[str, Any], allowed_actions: list[str]) -> BedrockAnswer:
+    def decide(self, state: "dict[str, Any] | str", allowed_actions: list[str]) -> BedrockAnswer:
+        """`state` is the same terse text the Decider reads (or the projected dict)."""
         if self.mode == "off":
             raise BedrockUnavailable("escalation disabled (SENTINEL_BEDROCK_MODE=off)")
         if self.mode == "stub":
@@ -112,7 +113,7 @@ class BedrockClient:
             resp = self._client.converse(
                 modelId=self.model_id,
                 system=[{"text": SYSTEM_PROMPT}],
-                messages=[{"role": "user", "content": [{"text": "STATE:\n" + json.dumps(state, sort_keys=True, ensure_ascii=False)}]}],
+                messages=[{"role": "user", "content": [{"text": "STATE:\n" + (state if isinstance(state, str) else json.dumps(state, sort_keys=True, ensure_ascii=False))}]}],
                 toolConfig={"tools": [tool_spec(allowed_actions)], "toolChoice": {"tool": {"name": TOOL_NAME}}},
                 inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.0},
             )
@@ -128,14 +129,16 @@ class BedrockClient:
         """Deterministic offline stand-in: a few rules over the claim text, with synthetic usage
         sized like a real call so budget accounting is exercised. Never presented as a model."""
         started = time.perf_counter()
-        claim = str(state.get("claim", "")).lower()
-        text = json.dumps(state, sort_keys=True)
+        text = state if isinstance(state, str) else json.dumps(state, sort_keys=True)
+        low = text.lower()
+        claim = low.split("claim to evaluate:")[-1].split("\n")[0] if "claim to evaluate:" in low else str(state.get("claim", "")).lower() if isinstance(state, dict) else low
+        is_allegation = any(w in claim for w in ("refuse his", "spoiled", "mould", "has been selling"))
         if any(w in claim for w in ("override", "ignore your", "almost empty", "owe me", "before the village runs out")):
             action = "reject_claim"
-        elif "refuse his next offer" in claim or "spoiled" in claim:
-            # an allegation: act on it only if the resident has inspected evidence that confirms it
-            mem = " ".join(m.get("text", "") for m in state.get("memories", [])).lower()
-            action = "accept_claim" if ("spoil" in mem and "no spoilage" not in mem) else "reject_claim"
+        elif is_allegation:
+            # Act on an allegation only when the resident's own inspection confirmed it.
+            confirmed = "visible mould" in low or "warning is accurate" in low
+            action = "accept_claim" if confirmed else "reject_claim"
         elif "two coins" in claim or "usual price" in claim or "normal village price" in claim:
             action = "accept_claim"
         else:

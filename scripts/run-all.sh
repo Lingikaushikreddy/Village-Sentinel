@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODE=${1:-stub}; SEEDS=${2:-1-5}
-THR=${3:-$(python -c "import json;print(json.load(open('bench/results/calibration.json'))['threshold_safe']['threshold'])" 2>/dev/null || echo 0.6)}
+THR=${3:-$(python -c "import json;print(json.load(open('bench/results/calibration.json'))['threshold_recommended']['threshold'])" 2>/dev/null || echo 0.6)}
 PORT=${PORT:-8097}
 LEDGER=bench/bundles/ledger-$(date +%Y%m%dT%H%M%S).sqlite
 python -m village_sentinel.service --port "$PORT" --threshold "$THR" --bedrock-mode "$MODE" --ledger "$LEDGER" > "$LEDGER.service.log" 2>&1 &

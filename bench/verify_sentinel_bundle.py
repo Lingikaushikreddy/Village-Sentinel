@@ -30,7 +30,7 @@ sys.path.insert(0, str(HERE.parent / "patterns" / "evidence-first" / "src"))
 sys.path.insert(0, str(HERE.parent / "sentinel"))
 from evidence_first_tool_router import DeciderReading, RouterConfig, Tier, route  # noqa: E402
 from village_sentinel.bedrock_client import micro_usd  # noqa: E402
-from village_sentinel.projection import assert_hermetic, canonical_json, sha256_hex  # noqa: E402
+from village_sentinel.projection import assert_hermetic, canonical_json, render_state_text, sha256_hex  # noqa: E402
 from village_sentinel.scoring import score_runs  # noqa: E402
 
 TESTBED = HERE.parent / "engine" / "node_modules" / ".bin" / "settlement-testbed"
@@ -87,15 +87,18 @@ def main() -> int:
             rep.add(f"{mode}: engine replay", p.returncode == 0, (p.stdout + p.stderr).strip().splitlines()[-1] if (p.stdout or p.stderr) else "")
 
         # 3. input hashes + hermetic
-        bad_hash = bad_herm = 0
+        bad_hash = bad_herm = bad_prompt = 0
         for t in traces.values():
             if sha256_hex(canonical_json(t["state"])) != t["input_hash"]:
                 bad_hash += 1
+            if "prompt_sha256" in t["trace"] and sha256_hex(render_state_text(t["state"])) != t["trace"]["prompt_sha256"]:
+                bad_prompt += 1
             try:
                 assert_hermetic(t["state"])
             except AssertionError:
                 bad_herm += 1
         rep.add(f"{mode}: input hashes", bad_hash == 0, f"{len(traces)} traces, {bad_hash} mismatches")
+        rep.add(f"{mode}: prompt text hashes", bad_prompt == 0, f"{bad_prompt} mismatches")
         rep.add(f"{mode}: hermetic states", bad_herm == 0, f"{bad_herm} leaks")
 
         # 4. tier re-derivation

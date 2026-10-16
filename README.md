@@ -29,7 +29,7 @@ python bench/calibrate.py                             # → bench/results/calibr
 
 # 4. start the agent service (loopback only). Bedrock: live | stub | off
 export SENTINEL_BEDROCK_MODE=live AWS_REGION=us-east-1          # or stub for an offline dry run
-python -m village_sentinel.service --port 8097 --threshold $(python -c "import json;print(json.load(open('bench/results/calibration.json'))['threshold_safe']['threshold'])")
+python -m village_sentinel.service --port 8097 --threshold $(python -c "import json;print(json.load(open('bench/results/calibration.json'))['threshold_recommended']['threshold'])")
 
 # 5. matched comparison: decider-only vs bedrock-only vs hybrid on identical scenarios/seeds
 node engine/run-matched.mjs --seeds=1-5                # → bench/bundles/<stamp>/

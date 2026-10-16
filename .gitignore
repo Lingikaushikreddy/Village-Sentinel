@@ -6,6 +6,5 @@ node_modules/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
-bench/bundles/*/
-!bench/bundles/.gitkeep
+bench/bundles/ledger-*
 .DS_Store
