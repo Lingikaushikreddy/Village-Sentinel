@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "village-sentinel"
+version = "0.1.0"
+description = "Village Sentinel agent service: Strands Decider 2B + Amazon Bedrock behind the evidence-first router, speaking the Settlement testbed protocol."
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["evidence-first-tool-router"]
+
+[project.optional-dependencies]
+decider = ["strands-decider @ git+https://github.com/strands-labs/strands-decider@930e6d5de16309be32579f5631a7369a3322140c"]
+bedrock = ["boto3>=1.35"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["village_sentinel*"]

@@ -1,0 +1,16 @@
+{
+  "name": "village-sentinel-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Loopback layer between the Settlement testbed (Node) and the Village Sentinel agent service (Python).",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "dump-requests": "node dump-requests.mjs",
+    "run-matched": "node run-matched.mjs",
+    "verify": "settlement-testbed --verify"
+  },
+  "dependencies": {
+    "settlement-testbed": "0.12.0"
+  }
+}

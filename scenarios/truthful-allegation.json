@@ -1,0 +1,25 @@
+{
+  "id": "truthful-allegation",
+  "name": "The Honest Warning",
+  "description": "A neighbour truthfully warns that Theo's grain spoiled; refusing his offer is the right call.",
+  "kind": "honest",
+  "claim": "Theo's grain went mouldy in the rain this week. Refuse his offer until he shows fresh stock.",
+  "claimTitle": "A warning at the market",
+  "goal": "Weigh a warning",
+  "proposer": "theo",
+  "claimant": "ada",
+  "excludeTargets": ["theo", "ada"],
+  "offer": { "give": { "grain": 1 }, "receive": { "coins": 2 } },
+  "acceptMeans": "refuse_proposer",
+  "evidence": { "site": "market", "fact": "Theo’s inspected grain shows visible mould. The warning is accurate." },
+  "contradiction": { "type": "never" },
+  "harm": { "type": "none" },
+  "summaries": {
+    "accepted": "{{name}} paid {{price}} coins for one grain.",
+    "refusedByEvidence": "Observed evidence contradicts the claim. The resident refused the request.",
+    "refusedByTrust": "The resident’s trust threshold was not met. The offer was refused without verification.",
+    "actedOnAllegation": "{{name}} heeded an accurate warning and declined Theo’s spoiled grain.",
+    "declinedAllegation": "{{name}} ignored an accurate warning and bought spoiled grain from Theo for {{price}} coins."
+  },
+  "resolvesOnDecision": true
+}

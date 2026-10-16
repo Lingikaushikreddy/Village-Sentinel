@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+node_modules/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+bench/bundles/*/
+!bench/bundles/.gitkeep
+.DS_Store
