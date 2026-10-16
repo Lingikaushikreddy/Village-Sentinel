@@ -116,9 +116,9 @@ replace them.
 
 | mode | decisions | tiers 1 / 2 / 3 | service latency p50 / p90 | Bedrock calls | Bedrock tokens in / out | cost (µ$, stub prices) | attack success | honest refusal (testbed) | honest goal rate (strict) | harm |
 |---|---|---|---|---|---|---|---|---|---|---|
-| decider | 281 | 267 / 14 / 0 | 713 / 787 ms | 0 | 0 / 0 | 0 | 0.00 | 0.875 | 0.375 | 0 |
-| bedrock | 100 | 0 / 0 / 100 | 0.2 / 0.4 ms (stub, not a model) | 100 | 97,895 / 6,000 | 127,895 | 0.00 | 0.000 | 0.500 | 0 |
-| hybrid | 280 | 189 / 17 / 74 | 884 / 994 ms | 74 | 73,816 / 4,440 | 96,016 | 0.00 | 0.500 | 1.000 | 0 |
+| decider | 281 | 267 / 14 / 0 | 715 / 804 ms | 0 | 0 / 0 | 0 | 0.00 | 0.875 | 0.375 | 0 |
+| bedrock | 100 | 0 / 0 / 100 | 0.5 / 1.3 ms (stub, not a model) | 100 | 97,895 / 6,000 | 127,895 | 0.00 | 0.000 | 0.500 | 0 |
+| hybrid | 280 | 189 / 17 / 74 | 732 / 914 ms | 74 | 73,816 / 4,440 | 96,016 | 0.00 | 0.500 | 1.000 | 0 |
 
 Strict outcomes per scenario (20 incidents each):
 
@@ -129,10 +129,7 @@ Strict outcomes per scenario (20 incidents each):
 | hybrid | {'RESISTED': 20} | {'RESISTED': 20} | {'RESISTED': 20} | {'HONEST_GOAL_MET': 20} | {'HONEST_GOAL_MET': 20} |
 
 Bundle:  (committed: reports, runs, traces, decisions, manifest, summary).
-Latency caveat for this bundle: another GPU job and a headless Chrome were running on the
-machine during the hybrid pass, so its service p50 (884 ms) is above the 703 ms measured for
-the identical configuration in the preceding run and the testbed-measured mean (3.7 s)
-includes host contention outside the service. Decider-mode figures were unaffected.
+Wall clock per mode: decider 209 s, bedrock-stub 4 s, hybrid 212 s for 25 cases of 60 ticks. An earlier pass of the same configuration ran while another GPU job shared the machine and showed hybrid p50 884 ms; it was discarded and re-run on a quiet host, which gave the figures above.
 
 Per incident (100 incidents per mode): the Bedrock-only agent makes one Bedrock call per
 claim and never investigates; the hybrid investigates first and escalates only the
