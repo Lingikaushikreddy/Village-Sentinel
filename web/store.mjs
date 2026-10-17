@@ -15,8 +15,11 @@ export class GameStore {
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS games(id TEXT PRIMARY KEY, version INTEGER NOT NULL, state TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS commands(run TEXT NOT NULL, id TEXT NOT NULL, input TEXT NOT NULL,
-        status TEXT NOT NULL, result TEXT, PRIMARY KEY(run,id));
+        status TEXT NOT NULL, result TEXT, owner_pid INTEGER, PRIMARY KEY(run,id));
       CREATE UNIQUE INDEX IF NOT EXISTS one_pending ON commands(run) WHERE status='pending';`);
+    if (!this.db.prepare('PRAGMA table_info(commands)').all().some(column => column.name === 'owner_pid')) {
+      this.db.exec('ALTER TABLE commands ADD COLUMN owner_pid INTEGER');
+    }
   }
   tx(fn) {
     this.db.exec('BEGIN IMMEDIATE');
@@ -50,10 +53,10 @@ export class GameStore {
       if (state.mode === 'live') {
         const usage = this.db.prepare(`SELECT COUNT(*) AS n, SUM(CASE WHEN c.status='pending' THEN 1 ELSE 0 END) AS pending
           FROM commands c JOIN games g ON g.id=c.run WHERE json_extract(g.state,'$.mode')='live'`).get();
-        if (usage.pending) throw new GameError('The host is already working on a live decision', 409);
+        if (usage.pending) throw new GameError('A live decision is pending. If its worker stopped, the host must recover the interrupted command.', 409);
         if (usage.n >= this.liveLimit) throw new GameError('The host live-call allowance is exhausted; recorded walkthroughs remain available', 429);
       }
-      this.db.prepare("INSERT INTO commands VALUES(?,?,?,'pending',NULL)").run(id, command.commandId, input);
+      this.db.prepare("INSERT INTO commands(run,id,input,status,result,owner_pid) VALUES(?,?,?,'pending',NULL,?)").run(id, command.commandId, input, process.pid);
       return { state };
     });
   }
@@ -71,6 +74,27 @@ export class GameStore {
       state.lastError = message;
       this.db.prepare('UPDATE games SET state=? WHERE id=?').run(JSON.stringify(state), id);
       this.db.prepare("UPDATE commands SET status='failed',result=? WHERE run=? AND id=?").run(JSON.stringify({ error: message }), id, command.commandId);
+    });
+  }
+  recoverInterrupted({ confirmWorkerStopped = false, legacyStoppedPid } = {}) {
+    if (!confirmWorkerStopped) throw new GameError('Confirm that the game server and its inference worker have stopped before recovery');
+    return this.tx(() => {
+      const pending = this.db.prepare("SELECT run,id,owner_pid FROM commands WHERE status='pending'").all();
+      for (const command of pending) {
+        const pid = command.owner_pid ?? legacyStoppedPid;
+        if (!Number.isSafeInteger(pid) || pid < 1) throw new GameError('The legacy worker PID is unknown. Supply its stopped PID explicitly.');
+        try { process.kill(pid, 0); }
+        catch (error) { if (error.code === 'ESRCH') continue; else throw new GameError(`Cannot confirm that worker ${pid} stopped`, 409); }
+        throw new GameError(`Worker ${pid} is still running; stop it before recovery`, 409);
+      }
+      const message = 'Interrupted decision; no inference was retried. Start a fresh scene.';
+      for (const command of pending) {
+        const state = this.read(command.run);
+        state.lastError = message;
+        this.db.prepare('UPDATE games SET state=? WHERE id=?').run(JSON.stringify(state), command.run);
+        this.db.prepare("UPDATE commands SET status='interrupted',result=? WHERE run=? AND id=?").run(JSON.stringify({ error: message }), command.run, command.id);
+      }
+      return pending.length;
     });
   }
   close() { this.db.close(); }

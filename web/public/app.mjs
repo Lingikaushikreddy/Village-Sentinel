@@ -1,6 +1,7 @@
 import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs';
 import { renderVillage } from './village.mjs';
 import { StaticDemo } from './demo-api.mjs';
+import { summarizeUsage } from './presentation.mjs';
 
 const $ = selector => document.querySelector(selector);
 const state = { scene: 'notice', mode: 'recorded', run: null, scenes: [], health: {}, busy: false, playing: false, token: '' };
@@ -17,6 +18,7 @@ async function api(path, body) {
     method: 'POST', headers: { 'content-type': 'application/json', ...(state.token ? { 'x-live-token': state.token } : {}) }, body: JSON.stringify(body),
   });
   const data = await response.json();
+  if (response.status === 401) state.token = '';
   if (!response.ok) throw Error(data.error ?? `Request failed (${response.status})`);
   return data;
 }
@@ -42,14 +44,14 @@ function renderScenes() {
 function teamMessages() {
   const entry = last();
   const mira = state.run?.world.agents.find(a => a.id === 'mira');
-  const calls = state.run?.history.filter(item => item.trace?.bedrock?.action).length ?? 0;
+  const usage = summarizeUsage(state.run?.history);
   const bea = entry?.trace?.bedrock;
   return {
     mira: mira ? `${mira.inventory.coins} coins · ${mira.inventory.grain} grain` : 'Needs supplies at a fair price',
     pip: state.busy ? (state.mode === 'recorded' ? 'Reading a saved model result' : 'Making a new model decision') : entry?.originalChoice ? toolName(entry.originalChoice) : entry?.provider.decider === 'unavailable' ? 'Decider unavailable' : 'Ready to compare the tools',
-    bea: bea?.mode === 'live' ? 'Live Bedrock response' : bea?.mode === 'stub' ? 'Offline stand-in used' : state.health.bedrock_mode === 'live' && state.mode === 'live' ? 'Ready if the choice is difficult' : 'Offline stand-in · AWS pending',
+    bea: bea?.error ? 'Bedrock failed · fallback used' : bea?.mode === 'live' ? 'Live Bedrock response' : bea?.mode === 'stub' ? 'Offline stand-in used' : state.health.bedrock_mode === 'live' && state.mode === 'live' ? 'Ready if the choice is difficult' : 'Offline stand-in · AWS pending',
     gus: entry ? `${state.run.history.length} actions applied to the world` : 'Keeping world actions valid',
-    luna: state.mode === 'recorded' ? '0 new model calls' : `${calls} Bedrock ${calls === 1 ? 'call' : 'calls'} · ${entry?.provider?.bedrock === 'stub' ? 'simulated usage' : 'usage recorded'}`,
+    luna: state.mode === 'recorded' ? '0 new model calls' : usage.attempted ? `${usage.attempted} ${usage.attempted === 1 ? 'attempt' : 'attempts'} · ${usage.validResponses} valid replies` : usage.simulatedResponses ? `${usage.simulatedResponses} simulated replies · 0 Bedrock calls` : '0 Bedrock calls',
     nimbus: state.health.staticReplay ? 'Public replay · no inference' : 'Local computer · AWS pending',
   };
 }
@@ -156,7 +158,9 @@ function showCharacter(id) {
   const character = CAST.find(item => item.id === id);
   if (!character) return;
   const description = id === 'nimbus' && state.health.staticReplay ? 'This public game replays verified, recorded world frames. It calls neither model. Run the source locally for new Decider decisions; the AWS account and live Bedrock setup remain separate.' : character.description;
-  $('#character-content').innerHTML = `<div class="character-detail">${portrait(id)}<div><h2 id="character-title">${character.name}</h2><p>${esc(character.role)}</p></div></div><p class="character-description">${esc(description)}</p><div class="character-live-note"><strong>In this scene</strong>${esc(teamMessages()[id])}</div>`;
+  const usage = summarizeUsage(state.run?.history);
+  const accounting = id === 'luna' && state.mode === 'live' ? `<p>Returned usage estimates $${usage.estimatedCostUSD.toFixed(6)} at the configured token rates. ${usage.uncertainReservations} uncertain reservations retain $${usage.reservedUSD.toFixed(6)}. ${usage.simulatedResponses} stand-in replies have synthetic usage. These are this scene’s records, not an AWS billing total.</p>` : '';
+  $('#character-content').innerHTML = `<div class="character-detail">${portrait(id)}<div><h2 id="character-title">${character.name}</h2><p>${esc(character.role)}</p></div></div><p class="character-description">${esc(description)}</p><div class="character-live-note"><strong>In this scene</strong>${esc(teamMessages()[id])}${accounting}</div>`;
   $('#character-dialog').showModal();
 }
 $('#scene-picker').addEventListener('click', event => {

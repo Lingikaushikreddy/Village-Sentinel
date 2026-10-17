@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 async function setup(t, source) {
   const { GameManager } = await import('../game.mjs');
@@ -141,4 +142,45 @@ test('the consequence describes the executed event rather than a generic acknowl
   assert.equal(outcome.detail, 'Mira travels to market to check the claim.');
   assert.deepEqual(outcome.locationChange, { from: 'farm', to: 'market' });
   assert.equal(outcome.events[0].type, 'move');
+});
+
+test('explicit recovery unblocks fresh scenes without retrying an interrupted decision or refunding its allowance', async t => {
+  const { GameManager } = await import('../game.mjs');
+  const { GameStore } = await import('../store.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'sentinel-recovery-'));
+  const database = join(dir, 'game.sqlite');
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import { GameStore } from ${JSON.stringify(new URL('../store.mjs', import.meta.url).href)};
+    import { GameManager } from ${JSON.stringify(new URL('../game.mjs', import.meta.url).href)};
+    const store = new GameStore(${JSON.stringify(database)});
+    const game = new GameManager({store});
+    const run = game.create({scene:'notice',mode:'live'});
+    store.reserve(run.id,{commandId:'interrupted',expectedVersion:0});
+    console.log(JSON.stringify({id:run.id,pid:process.pid}));
+    store.close();
+  `], { encoding: 'utf8' });
+  assert.equal(child.status, 0, child.stderr);
+  const old = JSON.parse(child.stdout);
+  const store = new GameStore(database, { liveLimit: 2 });
+  t.after(() => { store.close(); rmSync(dir, { recursive: true, force: true }); });
+  let calls = 0;
+  const game = new GameManager({ store, source: async () => { calls++; return decline(); } });
+  const fresh = game.create({ scene: 'notice', mode: 'live' });
+  await assert.rejects(game.step(fresh.id, { commandId: 'before-recovery', expectedVersion: 0 }), error => error.status === 409);
+  assert.throws(() => store.recoverInterrupted({ confirmWorkerStopped: false }), /confirm/i);
+  assert.equal(store.recoverInterrupted({ confirmWorkerStopped: true }), 1);
+  assert.equal(game.get(old.id).busy, false);
+  assert.match(game.get(old.id).lastError, /interrupted/i);
+  assert.equal(game.get(old.id).history.length, 0);
+  await game.step(fresh.id, { commandId: 'after-recovery', expectedVersion: 0 });
+  assert.equal(calls, 1);
+  await assert.rejects(game.step(fresh.id, { commandId: 'allowance-kept', expectedVersion: 1 }), error => error.status === 429);
+});
+
+test('recovery refuses to interrupt a command whose worker is still alive', async t => {
+  const game = await setup(t, decline);
+  const run = game.create({ scene: 'notice', mode: 'live' });
+  game.store.reserve(run.id, { commandId: 'still-alive', expectedVersion: 0 });
+  assert.throws(() => game.store.recoverInterrupted({ confirmWorkerStopped: true }), /still running/i);
+  assert.equal(game.get(run.id).busy, true);
 });

@@ -59,3 +59,19 @@ Stop the instance after the session and confirm EC2 reports **stopped**. The tem
 ## Failure accounting
 
 The application reserves before Bedrock calls. It retains a reservation when the provider charge is uncertain and commits returned usage even if the paid reply is malformed. Automatic SDK retries are disabled with `total_max_attempts=1` ([AWS retry semantics](https://docs.aws.amazon.com/boto3/latest/guide/retries.html)). This conservative ledger still is not an AWS billing hard cap; configured token prices and unrelated account costs must be checked separately.
+
+The cartoon ledger shows attempted calls, valid replies, cost estimated from returned usage and uncertain reservations separately. Recorded playback makes no new model calls; stand-in token usage is synthetic. A failed response remains a failure even when its provider was configured in live mode.
+
+## Recover an interrupted game command
+
+A crash during an admitted live command deliberately blocks further live calls. Stop **both** the Node game server and Python inference worker before recovery. Then run:
+
+```bash
+node scripts/recover-game.mjs --confirm-worker-stopped
+```
+
+Use the same `SENTINEL_GAME_DB` as the server. Recovery checks that each recorded owner PID has exited, marks its command interrupted and permits a fresh scene. It never retries inference, refunds a call allowance, changes the old world or releases a Python provider reservation. For a database created before owner PIDs were stored, provide the verified old PID with `--stopped-pid PID`; an unknown or still-running PID blocks recovery. PID reuse can conservatively block recovery too. Do not delete the ledgers to bypass a limit.
+
+## Local inference limits observed
+
+Three actual local Decider decisions completed through the browser and engine at 4,491, 930 and 648 ms in one session. Other cold or idle calls exceeded the 12-second deadline on the memory-pressured development Mac, including after startup warmup. Those runs are explicitly degraded; they are not successful live-model results. A final live judge run still needs a measured host with enough available memory, real Bedrock access and preserved failure traces. The public recorded walkthrough avoids that runtime dependency and is labeled accordingly.

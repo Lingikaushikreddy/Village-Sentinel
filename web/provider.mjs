@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { parseAgentResponse } from '../engine/live-adapter.mjs';
 import { GameError } from './store.mjs';
+import { bedrockStatus } from './public/presentation.mjs';
 
 export const BUNDLE = new URL('../bench/bundles/2026-10-16T23-06-48-676Z/', import.meta.url);
 const read = file => JSON.parse(readFileSync(new URL(file, BUNDLE), 'utf8'));
@@ -29,7 +30,7 @@ export function recordedDecision(entry, request) {
   }
   return {
     answer: structuredClone(saved.answer), trace: structuredClone(row.trace), inputHash: row.input_hash,
-    provider: { decider: 'recorded', bedrock: row.trace.bedrock?.mode ?? 'not-called', host: 'recorded-local', recordedAt: manifest.createdAt },
+    provider: { decider: 'recorded', bedrock: bedrockStatus(row.trace), host: 'recorded-local', recordedAt: manifest.createdAt },
   };
 }
 
@@ -52,7 +53,7 @@ export function liveSource(baseUrl = 'http://127.0.0.1:8797') {
     if (!row) throw new GameError('Missing decision trace; the world was not advanced', 502);
     return {
       answer, trace: row.trace, inputHash: row.input_hash,
-      provider: { decider: row.trace.decider?.error ? 'unavailable' : 'live', bedrock: row.trace.bedrock?.mode ?? (row.trace.bedrock?.error ? 'unavailable' : 'not-called'), host: 'local' },
+      provider: { decider: row.trace.decider?.error ? 'unavailable' : 'live', bedrock: bedrockStatus(row.trace), host: 'local' },
     };
   };
 }

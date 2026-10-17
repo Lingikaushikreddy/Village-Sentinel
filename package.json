@@ -14,6 +14,7 @@
     "game": "bash scripts/start-game.sh",
     "setup:engine": "npm --prefix engine ci --ignore-scripts",
     "test:browser": "node web/browser-qa.mjs",
+    "test:browser:regressions": "node --test web/review-browser.test.mjs",
     "build:demo": "node scripts/build-demo.mjs"
   },
   "devDependencies": {
