@@ -1,8 +1,10 @@
 import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs';
 import { renderVillage } from './village.mjs';
+import { startStrategy } from './strategy.mjs';
 import { StaticDemo } from './demo-api.mjs';
 import { summarizeUsage } from './presentation.mjs';
 
+const strategy = startStrategy();
 const $ = selector => document.querySelector(selector);
 const state = { scene: 'notice', mode: 'recorded', run: null, scenes: [], health: {}, busy: false, playing: false, token: '' };
 const demo = document.documentElement.dataset.backend === 'recorded-static' ? new StaticDemo() : null;
@@ -82,6 +84,7 @@ function renderDecision(entry) {
 function render() {
   const run = state.run;
   if (!run) return;
+  strategy.mission(run);
   const entry = last();
   const pending = run.pending;
   const resident = pending?.you ?? entry?.actor;

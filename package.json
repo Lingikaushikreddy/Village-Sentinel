@@ -15,7 +15,8 @@
     "setup:engine": "npm --prefix engine ci --ignore-scripts",
     "test:browser": "node web/browser-qa.mjs",
     "test:browser:regressions": "node --test web/review-browser.test.mjs",
-    "build:demo": "node scripts/build-demo.mjs"
+    "build:demo": "node scripts/build-demo.mjs",
+    "test:strategy": "node --test web/strategy-browser.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
