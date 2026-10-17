@@ -1,4 +1,4 @@
-import { exportFrame } from './static-data.mjs';
+import { exportFrame } from './static-data.mjs?v=f00c8328efa6';
 
 export class StaticDemo {
   constructor(base = new URL('./', document.baseURI)) { this.base = base; this.runs = new Map(); this.data = new Map(); }

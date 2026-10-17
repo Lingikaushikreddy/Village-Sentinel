@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#147e72">
   <meta name="description" content="A playable cartoon village where Strands Decider 2B chooses when to trust, investigate or ask Amazon Bedrock for help.">
-  <title>Village Sentinel · Who should the village trust?</title>
-  <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./app.mjs"></script>
+  <title>Village Sentinel · Build. Trade. Defend.</title>
+  <link rel="stylesheet" href="./styles.css?v=f00c8328efa6">
+  <link rel="stylesheet" href="./strategy.css?v=f00c8328efa6">
+  <script type="module" src="./app.mjs?v=f00c8328efa6"></script>
 </head>
 <body>
   <header class="site-header">
@@ -17,24 +18,25 @@
     </a>
     <nav aria-label="Project navigation">
       <button class="text-button" id="guide-button">How it works</button>
-      <a class="repo-link" href="https://github.com/Lingikaushikreddy/Village-Sentinel/tree/457f20cdf8ed0c00b017e119a5d1e3d1acb68015" target="_blank" rel="noreferrer">Source code <span aria-hidden="true">↗</span></a>
+      <a class="repo-link" href="https://github.com/Lingikaushikreddy/Village-Sentinel/tree/f00c8328efa6a70cd372c73b24a6068263af391b" target="_blank" rel="noreferrer">Source code <span aria-hidden="true">↗</span></a>
       <span class="host-chip" id="host-chip"><span class="status-dot"></span>Local village</span>
     </nav>
   </header>
 
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <div><p class="intro-note"><span class="tiny-leaf" aria-hidden="true">❧</span> A little world. A real AI decision.</p>
-        <h1 id="page-title">Who should the village trust?</h1>
-        <p class="intro-description">Spot a scam. Check a rumor. Keep a fair trade.<br class="mobile-break"> Watch the team decide what happens next.</p>
+      <div><p class="intro-note"><span class="tiny-leaf" aria-hidden="true">❧</span> The village strategy experiment</p>
+        <h1 id="page-title">A village worth defending.</h1>
+        <p class="intro-description">Build a home. Grow your supplies. Hold the walls. Let your AI team handle the tricky decisions.</p>
       </div>
       <div class="mode-controls">
-        <label for="mode">You’re watching</label>
+        <label for="mode">AI mission mode</label>
         <select id="mode"><option value="recorded">Recorded walkthrough</option><option value="live" disabled>Live local Decider</option></select>
         <span id="mode-note">Recorded Decider · Bedrock stand-in</span>
       </div>
     </section>
 
+    <div class="mission-heading" id="mission-center"><div><p>Pip’s mission board</p><h2>Good decisions keep the village safe.</h2><span>Complete a scenario to earn construction supplies. Each mission rewards you once.</span></div><a href="#page-title">Back to village ↑</a></div>
     <section class="scene-picker" aria-label="Choose a scene" id="scene-picker"></section>
 
     <div class="game-layout">

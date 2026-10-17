@@ -1,23 +1,28 @@
 {
-  "sourceCommit": "457f20cdf8ed0c00b017e119a5d1e3d1acb68015",
+  "sourceCommit": "f00c8328efa6a70cd372c73b24a6068263af391b",
   "operation": "recorded",
+  "gameplay": "local-strategy",
   "newModelCalls": 0,
   "bedrock": "stub",
   "awsVerified": false,
   "files": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "app.mjs": "99ea044559419bfd1688f473db1f920c383e29f5f4faee6f5eebec3d607314c0",
+    "app.mjs": "09e6a5e7c523a29d9939a2303c10ad2d470ee1bc0046481850cb8f416fcd82a1",
     "assets/character-cast.png": "49027561f72bbdcd0c1c3c617b42511c30f30c2e0c55833dd98f02b48af6663f",
     "characters.mjs": "542a71d2fdeebf43596ee1a32fa153f92968bad4f9382d53daca92fdfd720991",
-    "demo-api.mjs": "d19d2b5d7627c13fa87edc8164f134581482bb4c9cf80416badfd0e86626feaa",
-    "demo-data/catalog.json": "5379090b4af01081ad51ce974a687f1d3f173184a0a177988399237452750729",
-    "demo-data/fair-trade.json": "c6d3450c1163494bbfb9d031c12d39a1e99438804ec103b19b1dc4a076d92573",
-    "demo-data/messenger.json": "fbfb0673b1a7bb2cc0ceeda691a07b4b12186ec6e7226be5ca7879d8d51a7a1e",
-    "demo-data/notice.json": "da6fb59852f90d368ba820def9c721d22e35df49457f9e8a5ad1e8050c943459",
-    "index.html": "15a199a45c9ced8111c755094e509ded0c531349dc1a63ee0246be3fe8813834",
+    "demo-api.mjs": "82e4403eb3331fcc6b53ee5930ef2102def8b37278918d38f0a6e4c1d7c7b44d",
+    "demo-data/catalog.json": "78f514f1d96cf56fa0d2e61c121cf003e9be351098f08eb901f11874a4093459",
+    "demo-data/fair-trade.json": "9029a6250fcd61358094c70cf9e11c5ac3366b70d1f53370fe68bf2c54cbb086",
+    "demo-data/messenger.json": "7aeab9130b0dafb08651d503a0196ab16e09377a634bb53d80defaa56c20c1b7",
+    "demo-data/notice.json": "34de4e9b93180b3699973a7dba7bfe0234361d3963d33906f8a4de82e43facf6",
+    "index.html": "0d709aa52d318168e17f80a40d5a43f272b52c9e7229fe9caf999bf0808def1a",
     "presentation.mjs": "35f79ca6217bba7a2d272c432bf60f780f09b285b2cfb6a33bf0f91d489f0b0c",
     "static-data.mjs": "90be5492756a425cc3b26414d2fa30609e2016c74fcec2bb4d07e8de6bbb0108",
+    "strategy-map.mjs": "17e2ef248c77796a776289339516eef1306d90282c8b70db9222b0bfe79c91e9",
+    "strategy-state.mjs": "5f0e369aefeae1463bb9a5a9e420037d80c096e4f600e78335d64682cc6feb84",
+    "strategy.css": "749252e6a26f758b5a6866bfbe204f7c0ce4d9016044d7ac020f9bd0a13d2928",
+    "strategy.mjs": "1399d47fa79914f34def5f4865d5b3a77249f7e0e73a17f3e4de2e2c2ee959b8",
     "styles.css": "49353649280b9db119e8a99340e6eb131c9dd4ea7cf6595e0252a3724a7a8005",
-    "village.mjs": "40b199c7ea52a43370587d6753abfcc5e19da3c726d076d293ee4b41631a6646"
+    "village.mjs": "4eff00aeb6d0976eb021bcd49fe027b1aa32fa9e35583a3164c9da30d5bc0db9"
   }
 }
