@@ -1,4 +1,4 @@
-import { escapeHTML } from './characters.mjs?v=f00c8328efa6';
+import { escapeHTML } from './characters.mjs?v=c141c8b983cd';
 
 const POINTS = { granary: [185, 202], farm: [660, 195], market: [424, 326], well: [690, 400], workshop: [187, 417] };
 const tree = (x, y, scale = 1) => `<g transform="translate(${x} ${y}) scale(${scale})"><ellipse cy="24" rx="26" ry="9" fill="#728e54" opacity=".18"/><path d="M-5 5h10v27H-5z" fill="#997051"/><path d="M0-49C-42-52-46-9-24 2c-18 17 1 38 24 23C30 38 48 10 25 0 49-23 26-53 0-49Z" fill="#65a56d"/><path d="M-7-43C-30-35-32-12-16-8" fill="none" stroke="#8fbd75" stroke-width="9" stroke-linecap="round"/></g>`;

@@ -1,8 +1,8 @@
-import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs?v=f00c8328efa6';
-import { renderVillage } from './village.mjs?v=f00c8328efa6';
-import { startStrategy } from './strategy.mjs?v=f00c8328efa6';
-import { StaticDemo } from './demo-api.mjs?v=f00c8328efa6';
-import { summarizeUsage } from './presentation.mjs?v=f00c8328efa6';
+import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs?v=c141c8b983cd';
+import { renderVillage } from './village.mjs?v=c141c8b983cd';
+import { startStrategy } from './strategy.mjs?v=c141c8b983cd';
+import { StaticDemo } from './demo-api.mjs?v=c141c8b983cd';
+import { summarizeUsage } from './presentation.mjs?v=c141c8b983cd';
 
 const strategy = startStrategy();
 const $ = selector => document.querySelector(selector);
