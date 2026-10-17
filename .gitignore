@@ -8,3 +8,9 @@ node_modules/
 *.sqlite-shm
 bench/bundles/ledger-*
 .DS_Store
+.superpowers/
+work/
+.env
+.env.*
+!.env.example
+*.log
