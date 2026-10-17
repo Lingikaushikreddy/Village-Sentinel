@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-backend="recorded-static">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#147e72">
+  <meta name="description" content="A playable cartoon village where Strands Decider 2B chooses when to trust, investigate or ask Amazon Bedrock for help.">
+  <title>Village Sentinel · Who should the village trust?</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Village Sentinel home">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 3 43 10v13c0 11-19 21-19 21S5 34 5 23V10Z" fill="#147e72"/><path d="M15 26c-2-9 5-14 18-14 0 14-5 21-14 17m0 0 10-12" fill="#cae5aa" stroke="#cae5aa" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Village <strong>Sentinel</strong></span>
+    </a>
+    <nav aria-label="Project navigation">
+      <button class="text-button" id="guide-button">How it works</button>
+      <a class="repo-link" href="https://github.com/Lingikaushikreddy/Village-Sentinel/tree/457f20cdf8ed0c00b017e119a5d1e3d1acb68015" target="_blank" rel="noreferrer">Source code <span aria-hidden="true">↗</span></a>
+      <span class="host-chip" id="host-chip"><span class="status-dot"></span>Local village</span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="intro-note"><span class="tiny-leaf" aria-hidden="true">❧</span> A little world. A real AI decision.</p>
+        <h1 id="page-title">Who should the village trust?</h1>
+        <p class="intro-description">Spot a scam. Check a rumor. Keep a fair trade.<br class="mobile-break"> Watch the team decide what happens next.</p>
+      </div>
+      <div class="mode-controls">
+        <label for="mode">You’re watching</label>
+        <select id="mode"><option value="recorded">Recorded walkthrough</option><option value="live" disabled>Live local Decider</option></select>
+        <span id="mode-note">Recorded Decider · Bedrock stand-in</span>
+      </div>
+    </section>
+
+    <section class="scene-picker" aria-label="Choose a scene" id="scene-picker"></section>
+
+    <div class="game-layout">
+      <section class="village-panel" aria-labelledby="village-title">
+        <div class="village-heading"><div><span class="day-badge">☀ Market day</span><h2 id="village-title">A message has arrived</h2></div><span class="tick-badge" id="tick">Tick 8</span></div>
+        <div id="village" class="village-stage" aria-label="Village map"></div>
+        <div class="map-caption"><span><i class="map-key resident-key"></i>Residents</span><span><i class="map-key visitor-key"></i>Rook, the message sender</span><span id="map-status">The world waits while you decide.</span></div>
+      </section>
+
+      <section class="story-panel" aria-label="Current decision">
+        <div class="story-topline"><span id="step-label">The claim</span><span class="operation-badge" id="operation-badge">Recorded</span></div>
+        <div class="speaker-heading"><span class="portrait portrait-mira portrait-small" aria-hidden="true"></span><div><p id="resident-label">Mira needs supplies</p><span id="resident-goal">Keep her coins. Make fair trades.</span></div></div>
+        <blockquote id="claim">Loading the village…</blockquote>
+        <div class="fact-strip" id="facts"><span>Normal price: <strong>2 coins / grain</strong></span></div>
+        <div class="choice-heading"><h3>Pip’s available tools</h3><button class="icon-button" id="tools-help" aria-label="Explain the three tools">?</button></div>
+        <div id="tools" class="tools"></div>
+        <div class="decision-result" id="decision-result" hidden></div>
+        <p class="error-message" id="error" role="alert" hidden></p>
+        <div class="primary-controls"><button class="primary-button" id="next-button" disabled><span id="next-text">Next decision</span><span aria-hidden="true">▶</span></button><button class="play-button" id="play-button" aria-label="Play the complete scene" disabled>▷</button></div>
+        <div class="secondary-controls"><button id="restart-button" class="text-button">Restart scene</button><a id="export-link" class="text-button" href="#" download>Save evidence</a></div>
+        <p class="truth-note" id="truth-note">A recorded walkthrough makes no new model calls.</p>
+      </section>
+    </div>
+
+    <section class="team-section" aria-labelledby="team-title">
+      <div class="section-heading"><h2 id="team-title">One team. Six clear jobs.</h2><p>Choose a character to meet your helpers.</p></div>
+      <div class="team-rail" id="team-rail"></div>
+    </section>
+
+    <section class="inspect-section" aria-labelledby="inside-title">
+      <div class="section-heading"><div><h2 id="inside-title">Follow the decision</h2><p>The model’s choice, the app’s route, and the world’s action are shown separately.</p></div><span class="pattern-badge">Tool selection</span></div>
+      <div class="decision-flow" id="decision-flow"><p class="empty-note">Take a step to see the evidence behind the action.</p></div>
+      <details class="technical-details"><summary>Inspect probabilities, evidence and trace</summary><div id="trace-detail"><p>Waiting for the first decision.</p></div></details>
+      <div class="history-section"><h3>What happened</h3><ol id="history"><li class="empty-note">The village is ready for its first choice.</li></ol></div>
+    </section>
+    <footer><span>Built with Strands Decider 2B + Amazon Bedrock</span><span>Original teaching characters · Settlement simulation disclosed in source</span></footer>
+  </main>
+
+  <dialog id="character-dialog" aria-labelledby="character-title"><button class="close-button" data-close aria-label="Close character guide">×</button><div id="character-content"></div></dialog>
+  <dialog id="guide-dialog" aria-labelledby="guide-title"><button class="close-button" data-close aria-label="Close walkthrough guide">×</button><p class="dialog-kicker">Your 60-second village tour</p><h2 id="guide-title">A claim is not a command.</h2><p>A villager hears a message. The AI must choose what to do with it, and the village has to live with that choice.</p><ol class="guide-steps"><li><strong>Hear the claim.</strong><span>Start with The notice. The message asks for eight coins, but a normal grain trade costs two.</span></li><li><strong>Watch Pip choose.</strong><span>Decider 2B selects an available tool and returns probabilities. It does not write an explanation.</span></li><li><strong>Check the source.</strong><span>If the agent investigates, the villager moves to the evidence. The next decision gets the new observation.</span></li><li><strong>See the consequence.</strong><span>Gus applies the action. Did the resident pay, decline, or keep investigating? Then try The fair trade.</span></li></ol><div class="guide-note"><strong>Read the mode label.</strong> Recorded walkthroughs use real saved Decider results and a labeled Bedrock stand-in. Live mode makes new local Decider calls. Live Bedrock and AWS deployment need the owner’s AWS setup.</div><button class="primary-button" data-close>Let’s visit the village <span aria-hidden="true">▶</span></button></dialog>
+  <dialog id="token-dialog" aria-labelledby="token-title"><button class="close-button" data-close aria-label="Close live access">×</button><h2 id="token-title">Unlock live decisions</h2><p>This host limits new model calls. Enter the token provided by the project owner.</p><form id="token-form"><label for="live-token">Live access token</label><input id="live-token" type="password" autocomplete="off" required><button class="primary-button" type="submit">Use live mode</button></form></dialog>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "457f20cdf8ed0c00b017e119a5d1e3d1acb68015",
+  "operation": "recorded",
+  "newModelCalls": 0,
+  "bedrock": "stub",
+  "awsVerified": false,
+  "files": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app.mjs": "99ea044559419bfd1688f473db1f920c383e29f5f4faee6f5eebec3d607314c0",
+    "assets/character-cast.png": "49027561f72bbdcd0c1c3c617b42511c30f30c2e0c55833dd98f02b48af6663f",
+    "characters.mjs": "542a71d2fdeebf43596ee1a32fa153f92968bad4f9382d53daca92fdfd720991",
+    "demo-api.mjs": "d19d2b5d7627c13fa87edc8164f134581482bb4c9cf80416badfd0e86626feaa",
+    "demo-data/catalog.json": "5379090b4af01081ad51ce974a687f1d3f173184a0a177988399237452750729",
+    "demo-data/fair-trade.json": "c6d3450c1163494bbfb9d031c12d39a1e99438804ec103b19b1dc4a076d92573",
+    "demo-data/messenger.json": "fbfb0673b1a7bb2cc0ceeda691a07b4b12186ec6e7226be5ca7879d8d51a7a1e",
+    "demo-data/notice.json": "da6fb59852f90d368ba820def9c721d22e35df49457f9e8a5ad1e8050c943459",
+    "index.html": "15a199a45c9ced8111c755094e509ded0c531349dc1a63ee0246be3fe8813834",
+    "presentation.mjs": "35f79ca6217bba7a2d272c432bf60f780f09b285b2cfb6a33bf0f91d489f0b0c",
+    "static-data.mjs": "90be5492756a425cc3b26414d2fa30609e2016c74fcec2bb4d07e8de6bbb0108",
+    "styles.css": "49353649280b9db119e8a99340e6eb131c9dd4ea7cf6595e0252a3724a7a8005",
+    "village.mjs": "40b199c7ea52a43370587d6753abfcc5e19da3c726d076d293ee4b41631a6646"
+  }
+}
