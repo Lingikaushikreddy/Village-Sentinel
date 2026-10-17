@@ -69,8 +69,10 @@ and no whitespace.
 3. else if `check_evidence` is still allowed (the resident is walking to the source) →
    keep `check_evidence` (Tier 2 continuation; no Bedrock call before the evidence is in).
 4. else → **Tier 3**: reserve the estimated micro-dollars, call Bedrock with the forced
-   tool, commit the actual cost. Budget exhausted, timeout, or malformed reply → release the
-   reservation and dispatch the Decider's own choice (recorded as a fallback).
+   tool, commit the actual cost. Budget exhaustion dispatches an explicitly recorded fallback.
+   A network/timeout error retains its uncertain reservation; a malformed paid reply commits
+   its returned usage; only failures known to precede billing release a reservation.
+   Each failure is recorded as degraded before any Decider-choice fallback is applied.
 
 `decider` mode replaces step 4 with the Decider's choice (`degraded=true`);
 `bedrock` mode skips the Decider and always runs step 4.
@@ -86,6 +88,12 @@ and no whitespace.
 
 Money is integer micro-USD: `ceil((in·P_in + out·P_out)/1e6 · 1e6)` with prices per
 million tokens from `SENTINEL_BEDROCK_*_USD_PER_MTOK`.
+
+The default model envelope is $7 within the $25 project planning limit. The web layer
+adds one active live inference across all runs, a persistent call ceiling, and durable
+versioned step commands. Recorded mode reconstructs engine transitions from the saved
+answers and checks the original checkpoints. The UI labels local hosting, live Decider,
+recorded results, Bedrock stubs and degraded outcomes separately.
 
 ## Strict outcome scoring (`scoring.py`)
 

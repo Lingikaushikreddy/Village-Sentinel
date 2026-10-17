@@ -1,14 +1,18 @@
 import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs';
 import { renderVillage } from './village.mjs';
+import { StaticDemo } from './demo-api.mjs';
 
 const $ = selector => document.querySelector(selector);
 const state = { scene: 'notice', mode: 'recorded', run: null, scenes: [], health: {}, busy: false, playing: false, token: '' };
+const demo = document.documentElement.dataset.backend === 'recorded-static' ? new StaticDemo() : null;
+let exportUrl;
 const sceneIcons = {
   notice: '<path d="M7 5h17v23H7zM11 10h9m-9 5h9m-9 5h6M4 8H2v23h18v-1"/><path d="m19 2 5 3"/>',
   message: '<path d="M3 6h26v17H17l-7 6v-6H3zM8 11h16M8 16h11"/>',
   grain: '<path d="M16 28V7m0 8C8 17 5 12 7 7c6 0 10 3 9 8Zm0 6c-8 2-12-3-10-8 6 0 11 3 10 8Zm0-6c8 2 11-3 9-8-6 0-10 3-9 8Zm0 6c8 2 12-3 10-8-6 0-11 3-10 8ZM16 9c-5-5-3-9 0-11 4 4 5 8 0 11Z"/>',
 };
 async function api(path, body) {
+  if (demo) return demo.request(path, body);
   const response = await fetch(path, body === undefined ? {} : {
     method: 'POST', headers: { 'content-type': 'application/json', ...(state.token ? { 'x-live-token': state.token } : {}) }, body: JSON.stringify(body),
   });
@@ -46,7 +50,7 @@ function teamMessages() {
     bea: bea?.mode === 'live' ? 'Live Bedrock response' : bea?.mode === 'stub' ? 'Offline stand-in used' : state.health.bedrock_mode === 'live' && state.mode === 'live' ? 'Ready if the choice is difficult' : 'Offline stand-in · AWS pending',
     gus: entry ? `${state.run.history.length} actions applied to the world` : 'Keeping world actions valid',
     luna: state.mode === 'recorded' ? '0 new model calls' : `${calls} Bedrock ${calls === 1 ? 'call' : 'calls'} · ${entry?.provider?.bedrock === 'stub' ? 'simulated usage' : 'usage recorded'}`,
-    nimbus: 'Local computer · AWS pending',
+    nimbus: state.health.staticReplay ? 'Public replay · no inference' : 'Local computer · AWS pending',
   };
 }
 function renderTeam() {
@@ -92,7 +96,12 @@ function render() {
   $('#operation-badge').textContent = state.mode === 'recorded' ? 'Recorded' : entry?.provider.decider === 'unavailable' ? 'Degraded decision' : 'Live Decider';
   $('#operation-badge').classList.toggle('live', state.mode === 'live');
   $('#truth-note').textContent = state.mode === 'recorded' ? 'Real saved Decider decisions. Bedrock stand-in. No new model calls.' : state.health.bedrock_mode === 'live' ? 'New Decider calls. Difficult choices can call live Bedrock.' : 'New Decider calls. Bedrock is an offline stand-in; AWS is pending.';
-  $('#export-link').href = `/api/runs/${run.id}/export`;
+  if (demo) {
+    if (exportUrl) URL.revokeObjectURL(exportUrl);
+    exportUrl = URL.createObjectURL(new Blob([JSON.stringify(demo.export(run.id), null, 2)], { type: 'application/json' }));
+    $('#export-link').href = exportUrl;
+    $('#export-link').download = `sentinel-recorded-${state.scene}.json`;
+  } else $('#export-link').href = `/api/runs/${run.id}/export`;
   $('#history').innerHTML = run.history.length ? [...run.history].reverse().map(item => `<li data-decision="${esc(item.decisionId)}"><span class="history-tick">Tick ${item.tick}</span><span><strong>${esc(item.actor.name)}: ${esc(toolName(item.returnedAction))}</strong><br>${esc(item.consequence.detail)}</span><span>${item.provider.decider === 'recorded' ? 'Recorded' : 'New call'}${item.trace?.bedrock?.mode === 'stub' ? ' · Bedrock stand-in' : ''}</span></li>`).join('') : '<li class="empty-note">The village is ready for its first choice.</li>';
   renderVillage($('#village'), run.world, pending?.you.id ?? entry?.actor.id);
   renderDecision(entry);
@@ -106,7 +115,8 @@ async function refreshHealth() {
   const liveReady = state.health.connected && state.health.liveEnabled && Boolean(state.health.decider);
   $('#mode option[value=live]').disabled = !liveReady;
   $('#mode-note').textContent = state.mode === 'recorded' ? 'Recorded Decider · Bedrock stand-in' : state.health.bedrock_mode === 'live' ? 'New Decider calls · Bedrock enabled' : 'New Decider calls · Bedrock stand-in';
-  $('#host-chip').innerHTML = '<span class="status-dot"></span>Local village';
+  $('#host-chip').innerHTML = `<span class="status-dot"></span>${state.health.staticReplay ? 'Public replay' : 'Local village'}`;
+  if (state.health.staticReplay) $('#mode option[value=live]').textContent = 'Live mode: run the source locally';
   renderTeam();
 }
 async function startScene() {
@@ -145,7 +155,8 @@ async function playScene() {
 function showCharacter(id) {
   const character = CAST.find(item => item.id === id);
   if (!character) return;
-  $('#character-content').innerHTML = `<div class="character-detail">${portrait(id)}<div><h2 id="character-title">${character.name}</h2><p>${esc(character.role)}</p></div></div><p class="character-description">${esc(character.description)}</p><div class="character-live-note"><strong>In this scene</strong>${esc(teamMessages()[id])}</div>`;
+  const description = id === 'nimbus' && state.health.staticReplay ? 'This public game replays verified, recorded world frames. It calls neither model. Run the source locally for new Decider decisions; the AWS account and live Bedrock setup remain separate.' : character.description;
+  $('#character-content').innerHTML = `<div class="character-detail">${portrait(id)}<div><h2 id="character-title">${character.name}</h2><p>${esc(character.role)}</p></div></div><p class="character-description">${esc(description)}</p><div class="character-live-note"><strong>In this scene</strong>${esc(teamMessages()[id])}</div>`;
   $('#character-dialog').showModal();
 }
 $('#scene-picker').addEventListener('click', event => {

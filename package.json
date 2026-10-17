@@ -13,7 +13,8 @@
     "test": "node --test web/tests/*.test.mjs",
     "game": "bash scripts/start-game.sh",
     "setup:engine": "npm --prefix engine ci --ignore-scripts",
-    "test:browser": "node web/browser-qa.mjs"
+    "test:browser": "node web/browser-qa.mjs",
+    "build:demo": "node scripts/build-demo.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

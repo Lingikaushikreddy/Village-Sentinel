@@ -67,5 +67,6 @@
 
 - [ ] Document exactly what is real, recorded, stubbed and pending; add an under-three-minute demo outline.
 - [ ] Prepare a reviewable AWS deployment recipe and budget controls without creating paid resources.
+- [ ] Build and browser-test a public recorded-only static walkthrough, verifying each intermediate engine prefix and labeling the host and zero new model calls. Publish through the public repository's GitHub Pages configuration after review.
 - [ ] Verify the new interface, existing bundle and test suites; obtain one fresh whole-change review.
 - [ ] Fix Important/Critical findings with failing regressions, package updated source, push the authorized branch and create/attach a PR. Leave the local game running and open its browser view.

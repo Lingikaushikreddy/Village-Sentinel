@@ -12,6 +12,8 @@ const STATIC = {
   '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'],
   '/characters.mjs': ['characters.mjs', 'text/javascript; charset=utf-8'],
   '/village.mjs': ['village.mjs', 'text/javascript; charset=utf-8'],
+  '/demo-api.mjs': ['demo-api.mjs', 'text/javascript; charset=utf-8'],
+  '/static-data.mjs': ['static-data.mjs', 'text/javascript; charset=utf-8'],
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
   '/assets/character-cast.png': ['assets/character-cast.png', 'image/png'],
 };

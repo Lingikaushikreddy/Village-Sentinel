@@ -5,6 +5,48 @@ makes the fast, calibrated call on every claim a resident hears; when it is unsu
 agent **checks the evidence first**, and only when evidence does not settle it does it
 escalate to **Amazon Bedrock** with a forced structured tool choice. Pattern: **tool selection**.
 
+## Play the cartoon village
+
+```bash
+npm ci
+npm run setup:engine
+npm start
+```
+
+Open **http://127.0.0.1:5173**. Choose The notice, The messenger or The fair trade.
+Six original cartoon helpers explain the claim, model choice, routing, world action,
+usage and hosting. Every scene can be stepped, played, restarted and exported.
+
+The default walkthrough uses **recorded real Decider results and a Bedrock stub** from
+the committed evaluation bundle. It makes no new model calls. Its world transitions
+are reconstructed by the actual engine and checked against the recorded checkpoints.
+
+For new local Decider calls, install the Python dependencies in the next section, then:
+
+```bash
+npm run game -- --live
+```
+
+The launcher warms the actual checkpoint before serving the agent, uses a $7 model
+allocation, and keeps Bedrock in **stub** mode by default. Choose **Live local Decider**
+in the page once the service is ready. A cold or memory-constrained host can still
+exceed the decision deadline; those results are labeled degraded. The interface
+never claims that a fallback came from a successful Decider call.
+
+**AWS status:** the owner is still setting up the account. Local gameplay works;
+live Bedrock and an AWS-hosted run are not yet verified. This is not yet a complete
+qualifying submission. See [the judge walkthrough](docs/JUDGE-GUIDE.md) and
+[the concrete AWS handoff](docs/DEPLOYMENT.md).
+
+Browser checks (Chrome installed; start the app first): `npm run test:browser`.
+Set `SENTINEL_TEST_LIVE=1` to include a new real Decider call. Native HTTP/game tests:
+`npm test`.
+
+`npm run build:demo` creates a static **recorded-only** site in `work/static-site`.
+It verifies every intermediate world frame with the engine, includes integrity hashes,
+and makes zero model calls. It can be hosted on GitHub Pages while AWS setup is pending.
+This public replay is separate from the required AWS/live Bedrock demonstration.
+
 * Reusable pattern: [`patterns/evidence-first`](patterns/evidence-first) (`evidence_first_tool_router`, stdlib only)
 * Agent service: [`sentinel/`](sentinel) · Engine loopback: [`engine/`](engine) · Harness: [`bench/`](bench)
 * Docs: [Architecture](docs/ARCHITECTURE.md) · [Decider mechanics](docs/DECIDER_MECHANICS.md) · [Evaluation](docs/EVALUATION.md) · [Attribution](ATTRIBUTION.md)
@@ -63,3 +105,5 @@ python bench/verify_sentinel_bundle.py bench/bundles/<stamp>
   reference (non-fused) Gated DeltaNet kernels; CUDA with `flash-linear-attention` is faster.
 * Bedrock traces are labelled `live` or `stub`. A stub trace is a deterministic rule, not a model.
 * The Settlement testbed is prior work by the same author and is used only as a dependency (see ATTRIBUTION.md).
+* The illustrated interface imports the pinned package's published internal step APIs through one adapter; package upgrades require replay verification.
+* Bedrock request timeouts retain uncertain reservations; malformed paid replies still record returned token usage. The application ledger is not an AWS billing hard cap.
