@@ -58,7 +58,7 @@ export function startStrategy(){
   renderStrategyMap($('#strategy-map'),s,selected,placing,missionCrew(),missionOpen?active:selectedCrew);
   if(missionOpen){
    const action=entry?.returnedAction;
-   missionStatus.textContent=missionBusy?'Pip is reading the case…':missionRun?.status==='completed'?'Case complete · reward recorded in your village':action==='check_evidence'?'Mira checks the evidence at your trading post':action==='accept_claim'?'Mira visits the trading post · Gus records the outcome':action==='reject_claim'?'Mira returns to the hall · the claim was declined':'Mira brings a case to your village team';
+   missionStatus.textContent=missionBusy?'Pip is reading the case…':missionRun?.status==='completed'?(s.missions.includes(missionRun.scene)?'Case complete · reward recorded in your village':'Case complete · no supplies awarded to a finished village'):action==='check_evidence'?'Mira checks the evidence at your trading post':action==='accept_claim'?'Mira visits the trading post · Gus records the outcome':action==='reject_claim'?'Mira returns to the hall · the claim was declined':'Mira brings a case to your village team';
   }
   for(const q of ['.crew-orders','#crew-detail','.construction-dock','.village-bottom','.village-objective','.map-instruction'])$(q).hidden=missionOpen;
   $('#village-speed').disabled=missionOpen;$('#new-village').disabled=missionOpen;

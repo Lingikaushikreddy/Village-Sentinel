@@ -49,7 +49,7 @@ function teamMessages() {
   const usage = summarizeUsage(state.run?.history);
   const bea = entry?.trace?.bedrock;
   return {
-    mira: mira ? `${mira.inventory.coins} coins · ${mira.inventory.grain} grain` : 'Needs supplies at a fair price',
+    mira: mira ? `Case wallet: ${mira.inventory.coins} coins · ${mira.inventory.grain} grain` : 'Needs supplies at a fair price',
     pip: state.busy ? (state.mode === 'recorded' ? 'Reading a saved model result' : 'Making a new model decision') : entry?.originalChoice ? toolName(entry.originalChoice) : entry?.provider.decider === 'unavailable' ? 'Decider unavailable' : 'Ready to compare the tools',
     bea: bea?.error ? 'Bedrock failed · fallback used' : bea?.mode === 'live' ? 'Live Bedrock response' : bea?.mode === 'stub' ? 'Offline stand-in used' : state.health.bedrock_mode === 'live' && state.mode === 'live' ? 'Ready if the choice is difficult' : 'Offline stand-in · AWS pending',
     gus: entry ? `${state.run.history.length} actions applied to the world` : 'Keeping world actions valid',
