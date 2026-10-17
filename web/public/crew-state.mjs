@@ -3,7 +3,7 @@ import { BUILDINGS, command, defense, freeLand, upgradeCost } from './strategy-s
 export const CREW = [
  {id:'mira',name:'Mira',job:'Farmer',resource:'food',site:'farm',x:4,y:6},
  {id:'pip',name:'Pip',job:'Scout',resource:'wood',site:'lumber',x:5,y:4},
- {id:'bea',name:'Bea',job:'Quartermaster',resource:'food',site:'farm',x:6,y:5},
+ {id:'bea',name:'Bea',job:'Quartermaster',resource:'food',site:'farm',x:3,y:5},
  {id:'gus',name:'Gus',job:'Builder',resource:'wood',site:'lumber',x:6,y:3},
  {id:'luna',name:'Luna',job:'Trader',resource:'gold',site:'market',x:7,y:6},
  {id:'nimbus',name:'Nimbus',job:'Courier',resource:'gold',site:'market',x:4,y:7},

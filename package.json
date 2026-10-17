@@ -16,7 +16,7 @@
     "test:browser": "node web/browser-qa.mjs",
     "test:browser:regressions": "node --test web/review-browser.test.mjs",
     "build:demo": "node scripts/build-demo.mjs",
-    "test:strategy": "node --test web/strategy-browser.test.mjs web/strategy-recovery.test.mjs"
+    "test:strategy": "node --test --test-concurrency=1 --test-timeout=60000 web/strategy-browser.test.mjs web/strategy-recovery.test.mjs web/crew-browser.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

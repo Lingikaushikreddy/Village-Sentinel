@@ -6,7 +6,7 @@ test('a chief can build, upgrade, trade, save, pause and reset the village',asyn
  const browser=await chromium.launch({headless:true,channel:'chrome'});
  try{
   const page=await browser.newPage({viewport:{width:1512,height:1100}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(base);await page.locator('#strategy-map svg').waitFor({timeout:5000});
+  await page.goto(base);await page.locator('#strategy-map > svg').waitFor({timeout:5000});
   await page.getByRole('button',{name:'Pause village',exact:true}).click();
   const gold=Number(await page.locator('#resource-gold').textContent());
   await page.getByRole('button',{name:'Build Sunfield farm',exact:true}).click();
@@ -39,7 +39,7 @@ test('a chief can build, upgrade, trade, save, pause and reset the village',asyn
 test('production stops while paused and resumes with the simulation clock',async()=>{
  const browser=await chromium.launch({headless:true,channel:'chrome'});
  try{
-  const page=await browser.newPage();await page.clock.install();await page.goto(base);await page.locator('#strategy-map svg').waitFor();
+  const page=await browser.newPage();await page.clock.install();await page.goto(base);await page.locator('#strategy-map > svg').waitFor();
   await page.getByRole('button',{name:'Pause village',exact:true}).click();const wood=Number(await page.locator('#resource-wood').textContent());
   await page.clock.runFor(10000);assert.equal(Number(await page.locator('#resource-wood').textContent()),wood);
   await page.getByRole('button',{name:'Resume village',exact:true}).click();await page.clock.runFor(5000);

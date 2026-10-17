@@ -8,7 +8,7 @@ test('an empty saved event log recovers without breaking the game or mission boa
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(village=>localStorage.setItem('village-sentinel-strategy-v1',JSON.stringify({village,paused:true})),{...newVillage(),log:[]});
-  await page.goto(base);await page.locator('#strategy-map svg').waitFor({timeout:3000});
+  await page.goto(base);await page.locator('#strategy-map > svg').waitFor({timeout:3000});
   assert.equal(await page.locator('.scene-button').count(),3);assert.equal(errors.length,0,errors.join('\n'));
  }finally{await browser.close();}
 });
@@ -17,7 +17,7 @@ test('a cached browser Back navigation resumes village time',async()=>{
  try{
   const page=await browser.newPage();
   await page.addInitScript(()=>{window.lastPageShowPersisted=false;addEventListener('pageshow',e=>{window.lastPageShowPersisted=e.persisted;});});
-  await page.goto(base);await page.locator('#strategy-map svg').waitFor();
+  await page.goto(base);await page.locator('#strategy-map > svg').waitFor();
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('village-sentinel-strategy-v1')??'{}').village?.tick>=1);
   const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('village-sentinel-strategy-v1')).village.tick);
   await page.goto(new URL('/styles.css',base).href);await page.goBack({waitUntil:'commit'});
