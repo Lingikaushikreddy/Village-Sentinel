@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newVillage, advance, command, restoreVillage } from '../public/strategy-state.mjs';
+import { newVillage, advance, command, restoreVillage, defense } from '../public/strategy-state.mjs';
 import { newCrew, chooseOrder, tickCrew, restCrew, restoreCrew } from '../public/crew-state.mjs';
 function run(village,crew,steps=120){for(let i=0;i<steps&&crew.order?.status==='active'&&village.status==='playing';i++)({village,crew}=tickCrew(advance(village),crew));return{village,crew};}
 test('all six residents complete a finite restock order with actual bounded resource deliveries',()=>{
@@ -21,6 +21,19 @@ test('fortify upgrades the tower and repairs damage with real costs',()=>{
  const {village,crew}=run({...newVillage(),integrity:75},chooseOrder(newCrew(),'fortify'));
  assert.equal(crew.order.status,'done');assert.equal(village.buildings.find(b=>b.kind==='tower').level,3);assert.equal(village.integrity,100);
  assert.ok(crew.order.spent.gold<=240&&crew.order.spent.wood<=180);assert.ok(crew.order.spent.gold>=190);
+});
+test('fortify cancels an obsolete pending tower upgrade after manual defenses meet the target',()=>{
+ for(const progress of [0,2]){
+  let v={...newVillage(),integrity:75,gold:1000,wood:1000},c=chooseOrder(newCrew(),'fortify');
+  ({village:v,crew:c}=tickCrew(v,c));
+  let gus=c.actors.find(a=>a.id==='gus');assert.equal(gus.job.type,'upgrade');
+  if(progress){gus.x=gus.job.target.x;gus.y=gus.job.target.y;gus.job.progress=progress;}
+  for(const [x,y] of [[2,6],[8,7]])v=command(v,{type:'build',kind:'tower',x,y});
+  assert.equal(defense(v),42);
+  for(let i=0;i<30&&c.order.status==='active';i++)({village:v,crew:c}=tickCrew(v,c));
+  assert.equal(c.order.status,'done');assert.equal(v.integrity,100);
+  assert.equal(defense(v),42);assert.deepEqual(c.order.spent,{gold:10,wood:20});
+ }
 });
 test('low funds wait without negative balances and resting actors do not work',()=>{
  let v={...newVillage(),gold:0,wood:0},c=restCrew(chooseOrder(newCrew(),'grow'),'gus',0);

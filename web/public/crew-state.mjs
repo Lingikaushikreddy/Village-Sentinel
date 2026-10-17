@@ -85,6 +85,8 @@ export function tickCrew(village,crew){
   // Manual construction may occupy a resident's standing tile; step to open adjacent land.
   if(!freeLand(v,a.x,a.y)){const open=neighbors(a).find(p=>freeLand(v,p.x,p.y));if(!open){a.note='Route blocked by buildings.';continue;}a.x=open.x;a.y=open.y;a.job=null;}
   if(a.job&&!freeLand(v,a.job.target.x,a.job.target.y))a.job=null;
+  // A manual tower may satisfy the order while Gus is walking or working.
+  if(c.order.kind==='fortify'&&a.job?.type==='upgrade'&&defense(v)>=42)a.job=null;
   if(!a.job)a.job=a.id==='gus'&&c.order.kind!=='restock'?builderJob(v,c,a):gatherJob(v,a);
   const job=a.job;if(!job)continue;
   const path=pathTo(v,a,job.target);

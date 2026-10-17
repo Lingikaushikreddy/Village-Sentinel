@@ -27,15 +27,15 @@
 ### Task 1: Crew simulation
 Files: web/public/crew-state.mjs; web/tests/crew.test.mjs.
 Interfaces: newCrew(), chooseOrder(crew,kind), tickCrew(village,crew)->{village,crew}, restCrew(crew,id,tick), restoreCrew(raw,village).
-- [ ] Write failing tests for resource deliveries, finite construction, reserve/cap limits, replan/rest/cancel, blocked paths, save recovery.
-- [ ] Implement the pure reducer and bounded validation; run Node suite and commit.
+- [x] Write failing tests for resource deliveries, finite construction, reserve/cap limits, replan/rest/cancel, blocked paths, save recovery.
+- [x] Implement the pure reducer and bounded validation; run Node suite and commit.
 
 ### Task 2: Painted world and character UI
 Files: strategy-map.mjs, strategy.mjs, strategy.css, crew-view.mjs, index.html, server.mjs, assets; web/crew-browser.test.mjs.
-- [ ] Add browser behavior checks for six sprites, orders, inspection/rest, local saves, mobile placement and mission navigation; observe failure.
-- [ ] Integrate atlas, painted terrain, map camera, crew controls and truthful mission status. Preserve prior selectors and workflow.
-- [ ] Inspect desktop/mobile screenshots, run strategy/recovery and mission browser checks; update attribution and user docs.
+- [x] Add browser behavior checks for six sprites, orders, inspection/rest, local saves, mobile placement and mission navigation; observe failure.
+- [x] Integrate atlas, painted terrain, map camera, crew controls and truthful mission status. Preserve prior selectors and workflow.
+- [x] Inspect desktop/mobile screenshots, run strategy/recovery and mission browser checks; update attribution and user docs.
 
 ### Task 3: Review and public release
-- [ ] One fresh review, address important findings, run relevant final checks.
+- [x] One fresh review, address important findings, run relevant final checks.
 - [ ] Push existing feature PR; publish recorded static site with source hashes; test public URL; update source ZIP and handoff.
