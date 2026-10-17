@@ -38,16 +38,10 @@
       </div>
     </section>
 
-    <div class="mission-heading" id="mission-center"><div><p>Pip’s mission board</p><h2>Good decisions keep the village safe.</h2><span>Complete a scenario to earn construction supplies. Each mission rewards you once.</span></div><a href="#village-play">Back to village ↑</a></div>
-    <section class="scene-picker" aria-label="Choose a scene" id="scene-picker"></section>
-
-    <div class="game-layout">
-      <section class="village-panel" aria-labelledby="village-title">
-        <div class="village-heading"><div><span class="day-badge">☀ Market day</span><h2 id="village-title">A message has arrived</h2></div><span class="tick-badge" id="tick">Tick 8</span></div>
-        <div id="village" class="village-stage" aria-label="Village map"></div>
-        <div class="map-caption"><span><i class="map-key resident-key"></i>Residents</span><span><i class="map-key visitor-key"></i>Rook, the message sender</span><span id="map-status">The world waits while you decide.</span></div>
-      </section>
-
+    <aside id="mission-panel" aria-label="Village AI missions" hidden>
+      <div class="mission-dock-heading"><div><p>Pip’s mission board</p><h2>Protect Willowcrest.</h2></div><button id="close-mission" aria-label="Return to building">×</button></div>
+      <p class="mission-intro">Your six friends investigate a preset case here. Its original observations stay in the evidence. Earn 40 coins + 25 timber, once per case.</p>
+      <section class="scene-picker" aria-label="Choose a scene" id="scene-picker"></section>
       <section class="story-panel" aria-label="Current decision">
         <div class="story-topline"><span id="step-label">The claim</span><span class="operation-badge" id="operation-badge">Recorded</span></div>
         <div class="speaker-heading"><span class="portrait portrait-mira portrait-small" aria-hidden="true"></span><div><p id="resident-label">Mira needs supplies</p><span id="resident-goal">Keep her coins. Make fair trades.</span></div></div>
@@ -61,19 +55,15 @@
         <div class="secondary-controls"><button id="restart-button" class="text-button">Restart scene</button><a id="export-link" class="text-button" href="#" download>Save evidence</a></div>
         <p class="truth-note" id="truth-note">A recorded walkthrough makes no new model calls.</p>
       </section>
-    </div>
-
-    <section class="team-section" aria-labelledby="team-title">
-      <div class="section-heading"><h2 id="team-title">One team. Six clear jobs.</h2><p>Choose a character to meet your helpers.</p></div>
-      <div class="team-rail" id="team-rail"></div>
-    </section>
-
+      <details class="mission-evidence"><summary>Decision evidence &amp; history</summary>
     <section class="inspect-section" aria-labelledby="inside-title">
       <div class="section-heading"><div><h2 id="inside-title">Follow the decision</h2><p>The model’s choice, the app’s route, and the world’s action are shown separately.</p></div><span class="pattern-badge">Tool selection</span></div>
       <div class="decision-flow" id="decision-flow"><p class="empty-note">Take a step to see the evidence behind the action.</p></div>
       <details class="technical-details"><summary>Inspect probabilities, evidence and trace</summary><div id="trace-detail"><p>Waiting for the first decision.</p></div></details>
-      <div class="history-section"><h3>What happened</h3><ol id="history"><li class="empty-note">The village is ready for its first choice.</li></ol></div>
+      <div class="history-section"><h3>What happened</h3><ol id="history"><li class="empty-note">The team is ready for its first case.</li></ol></div>
     </section>
+      </details>
+    </aside>
     <footer><span>Built with Strands Decider 2B + Amazon Bedrock</span><span>Original teaching characters · Settlement simulation disclosed in source</span></footer>
   </main>
 

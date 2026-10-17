@@ -1,6 +1,6 @@
 # Village Sentinel
 
-**[Play the village strategy game](https://lingikaushikreddy.github.io/Village-Sentinel/)** — meet Mira, Pip, Bea, Gus, Luna and Nimbus in a painted village. Give them orders to grow, restock or fortify, inspect their jobs, and build, trade and defend against raids. Complete the AI missions to earn construction supplies. The builder runs locally in your browser; public AI missions use labeled recorded decisions. [Gameplay guide](docs/STRATEGY-GAME.md).
+**[Play the village strategy game](https://lingikaushikreddy.github.io/Village-Sentinel/)** — meet Mira, Pip, Bea, Gus, Luna and Nimbus in a painted village. Give them orders to grow, restock or fortify, inspect their jobs, and build, trade and defend against raids. Open AI missions beside that same village to earn construction supplies. Your six helpers guide each case; village time holds until you return to building. The builder runs locally in your browser; public AI missions use labeled recorded decisions. [Gameplay guide](docs/STRATEGY-GAME.md).
 
 An autonomous governance agent for a simulated village economy. **Strands Decider 2B**
 makes the fast, calibrated call on every claim a resident hears; when it is unsure the

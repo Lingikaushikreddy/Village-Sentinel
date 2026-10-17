@@ -1,3 +1,4 @@
+import { castPortrait } from './game-art.mjs';
 export const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 export const CAST = [
   { id: 'mira', name: 'Mira', role: 'The villager', job: 'Needs supplies', description: 'Mira wants useful supplies at a fair price. Her coins, inventory and location come from the actual village simulation. Other residents can receive claims too.', color: 'lilac' },
@@ -7,6 +8,6 @@ export const CAST = [
   { id: 'luna', name: 'Luna', role: 'The usage ledger', job: 'Counts calls & cost', description: 'Luna represents accounting code. It records provider usage and bounded reservations. Duplicate completed commands replay their existing result. Synthetic stub token counts are separate from actual AWS charges.', color: 'coral' },
   { id: 'nimbus', name: 'Nimbus', role: 'The host', job: 'Keeps the game running', description: 'Nimbus represents the computer serving the app and local Decider. This session runs locally. AWS deployment is a separate step, and the interface does not call it AWS-ready before it has been verified.', color: 'blue' },
 ];
-export const portrait = (id, className = '') => `<span class="portrait portrait-${id} ${className}" aria-hidden="true"></span>`;
+export const portrait = (id, className = '') => `<span class="portrait cast-portrait ${className}" aria-hidden="true">${castPortrait(id)}</span>`;
 export const toolName = action => ({ accept_claim: 'Accept the claim', reject_claim: 'Decline the claim', check_evidence: 'Check the evidence' })[action] ?? 'No action';
 export const toolIcon = action => ({ accept_claim: '✓', reject_claim: '×', check_evidence: '⌕' })[action] ?? '·';

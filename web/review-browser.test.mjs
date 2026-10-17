@@ -20,6 +20,7 @@ async function fixture(t) {
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${app.address().port}`);
   await page.waitForFunction(() => document.querySelector('#next-button')?.disabled === false);
+  await page.getByRole('link',{name:'AI missions',exact:true}).click();
   return page;
 }
 async function enterToken(page, token) {

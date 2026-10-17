@@ -10,17 +10,19 @@ try {
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base);
+ await page.getByRole('link',{name:'AI missions',exact:true}).click();
  await page.getByRole('button',{name:'Next decision',exact:false}).click();
  await page.locator('#decision-result:not([hidden])').waitFor();
- assert.equal(await page.locator('.team-card').count(),6);
+ assert.equal(await page.locator('#crew-rail [data-role]').count(),6);
  assert.match(await page.locator('#operation-badge').textContent(),/Recorded/);
  assert.equal(await page.locator('#history li[data-decision]').count(),1);
  assert.match(await page.locator('#decision-result').textContent(),/travels to market/);
+ await page.locator('.mission-evidence>summary').click();
  await page.locator('.technical-details summary').click();
  assert.equal(await page.locator('[data-probability]').count(),3);
  await page.screenshot({path:'work/game-desktop.png',fullPage:true,animations:'disabled'});
  for(const name of ['Mira','Pip','Bea','Gus','Luna','Nimbus']){
-  await page.getByRole('button',{name:`Meet ${name}`}).click();
+  await page.locator(`#crew-rail [data-role=${name.toLowerCase()}]`).click();
   assert.equal(await page.getByRole('dialog').filter({has:page.getByRole('heading',{name,exact:true})}).count(),1);
   await page.getByRole('button',{name:'Close character guide'}).click();
  }

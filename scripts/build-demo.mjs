@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -9,9 +9,10 @@ import { verifyReplay, checkInvariants } from '../engine/live-adapter.mjs';
 
 export async function buildDemo(out) {
   mkdirSync(out, { recursive: true });
+  rmSync(resolve(out, 'village.mjs'), { force: true });
   cpSync(new URL('../web/public/', import.meta.url), out, { recursive: true });
   // Relative assets work both at a project subpath and at a local preview root.
-  for (const name of ['index.html', 'styles.css', 'village.mjs']) {
+  for (const name of ['index.html', 'styles.css']) {
     const path = resolve(out, name);
     let text = readFileSync(path, 'utf8').replaceAll('"/assets/', '"./assets/').replaceAll("'/assets/", "'./assets/");
     if (name === 'index.html') text = text.replace('<html lang="en">', '<html lang="en" data-backend="recorded-static">').replaceAll('href="/', 'href="./').replaceAll('src="/', 'src="./');

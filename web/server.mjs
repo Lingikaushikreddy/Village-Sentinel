@@ -11,7 +11,6 @@ const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'],
   '/characters.mjs': ['characters.mjs', 'text/javascript; charset=utf-8'],
-  '/village.mjs': ['village.mjs', 'text/javascript; charset=utf-8'],
   '/demo-api.mjs': ['demo-api.mjs', 'text/javascript; charset=utf-8'],
   '/static-data.mjs': ['static-data.mjs', 'text/javascript; charset=utf-8'],
   '/crew-state.mjs': ['crew-state.mjs', 'text/javascript; charset=utf-8'],

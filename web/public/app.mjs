@@ -1,5 +1,4 @@
 import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs';
-import { renderVillage } from './village.mjs';
 import { startStrategy } from './strategy.mjs';
 import { StaticDemo } from './demo-api.mjs';
 import { summarizeUsage } from './presentation.mjs';
@@ -8,7 +7,7 @@ const strategy = startStrategy();
 const $ = selector => document.querySelector(selector);
 const state = { scene: 'notice', mode: 'recorded', run: null, scenes: [], health: {}, busy: false, playing: false, token: '' };
 const demo = document.documentElement.dataset.backend === 'recorded-static' ? new StaticDemo() : null;
-let exportUrl;
+let exportUrl, playEpoch=0;
 const sceneIcons = {
   notice: '<path d="M7 5h17v23H7zM11 10h9m-9 5h9m-9 5h6M4 8H2v23h18v-1"/><path d="m19 2 5 3"/>',
   message: '<path d="M3 6h26v17H17l-7 6v-6H3zM8 11h16M8 16h11"/>',
@@ -29,6 +28,7 @@ const last = () => state.run?.history.at(-1);
 const isDegraded = entry => Boolean(entry?.trace?.bedrock?.error || entry?.trace?.decider?.error || entry?.trace?.degraded || entry?.trace?.route?.degraded);
 function setBusy(busy) {
   state.busy = busy;
+  strategy.missionBusy(busy);
   document.body.classList.toggle('busy', busy);
   $('#mode').disabled = busy || state.playing;
   for (const button of document.querySelectorAll('.scene-button')) button.disabled = busy || state.playing;
@@ -59,8 +59,14 @@ function teamMessages() {
 }
 function renderTeam() {
   const messages = teamMessages();
-  const active = state.busy ? 'pip' : last()?.trace?.bedrock?.action ? 'bea' : last() ? 'gus' : 'mira';
-  $('#team-rail').innerHTML = CAST.map(character => `<button class="team-card ${state.busy && character.id === 'pip' ? 'active-working' : ''}" data-role="${character.id}" data-active="${character.id === active}" aria-label="Meet ${character.name}">${portrait(character.id)}<strong>${character.name}</strong><span class="role-name">${esc(character.job)}</span><small>${esc(messages[character.id])}</small></button>`).join('');
+  for(const character of CAST){
+    const button=$(`#crew-rail [data-crew="${character.id}"]`);
+    button.dataset.role=character.id;
+    button.classList.toggle('active-working',state.busy&&character.id==='pip');
+    let note=button.querySelector('.mission-role');
+    if(!note){note=document.createElement('small');note.className='mission-role';button.append(note);}
+    note.textContent=messages[character.id];
+  }
 }
 function renderDecision(entry) {
   const result = $('#decision-result');
@@ -88,13 +94,9 @@ function render() {
   const entry = last();
   const pending = run.pending;
   const resident = pending?.you ?? entry?.actor;
-  $('#tick').textContent = `Tick ${run.world.tick} / ${run.maxTicks}`;
-  $('#village-title').textContent = run.status === 'completed' ? 'Another day in the village' : pending?.allowedActions.length === 2 ? 'The evidence is in' : entry?.returnedAction === 'check_evidence' ? 'Following the evidence' : 'A message has arrived';
-  $('#map-status').textContent = run.status === 'completed' ? 'This world can be replayed and verified.' : 'The world waits between decisions.';
-  $('#resident-label').textContent = `${resident?.name ?? 'The villager'} ${run.status === 'completed' ? 'finished the day' : 'has a choice to make'}`;
-  const oldPortrait = $('.speaker-heading>.portrait, .speaker-heading>.resident-initial');
-  if (resident?.id === 'mira') oldPortrait.outerHTML = portrait('mira', 'portrait-small');
-  else oldPortrait.outerHTML = `<span class="resident-initial" aria-hidden="true">${esc(resident?.name?.[0] ?? 'V')}</span>`;
+  $('.speaker-heading>.portrait').outerHTML=portrait('mira','portrait-small');
+  $('#resident-label').textContent = run.status === 'completed' ? 'Mira’s team finished the case' : 'Mira brings a case to the team';
+  $('#resident-goal').textContent = `Case resident: ${resident?.name ?? 'Mira'} · case tick ${run.world.tick} / ${run.maxTicks}`;
   $('#claim').textContent = pending?.claim ?? entry?.claim ?? 'The scene is complete.';
   $('#step-label').textContent = pending?.allowedActions.length === 2 ? 'After inspection' : run.status === 'completed' ? 'The consequence' : 'The claim';
   $('#tools').innerHTML = ['accept_claim', 'reject_claim', 'check_evidence'].map(action => `<span class="tool-chip ${!(pending?.allowedActions ?? entry?.allowedActions ?? []).includes(action) ? 'unavailable' : ''} ${entry?.returnedAction === action ? 'selected' : ''}"><span class="tool-symbol" aria-hidden="true">${toolIcon(action)}</span>${action === 'accept_claim' ? 'Accept' : action === 'reject_claim' ? 'Decline' : 'Check'}</span>`).join('');
@@ -108,7 +110,6 @@ function render() {
     $('#export-link').download = `sentinel-recorded-${state.scene}.json`;
   } else $('#export-link').href = `/api/runs/${run.id}/export`;
   $('#history').innerHTML = run.history.length ? [...run.history].reverse().map(item => `<li data-decision="${esc(item.decisionId)}"><span class="history-tick">Tick ${item.tick}</span><span><strong>${esc(item.actor.name)}: ${esc(toolName(item.returnedAction))}</strong><br>${esc(item.consequence.detail)}</span><span>${item.provider.decider === 'recorded' ? 'Recorded' : 'New call'}${item.trace?.bedrock?.mode === 'stub' ? ' · Bedrock stand-in' : ''}</span></li>`).join('') : '<li class="empty-note">The village is ready for its first choice.</li>';
-  renderVillage($('#village'), run.world, pending?.you.id ?? entry?.actor.id);
   renderDecision(entry);
   renderScenes();
   setBusy(state.busy);
@@ -149,13 +150,14 @@ async function nextDecision() {
   } finally { setBusy(false); }
 }
 async function playScene() {
-  if (state.playing) { state.playing = false; setBusy(state.busy); return; }
+  if (state.playing) { playEpoch++; state.playing = false; setBusy(state.busy); return; }
+  const epoch=++playEpoch;
   state.playing = true; setBusy(false);
-  while (state.playing && state.run?.status !== 'completed') {
+  while (epoch===playEpoch && state.playing && state.run?.status !== 'completed') {
     if (!(await nextDecision())) break;
     await new Promise(resolve => setTimeout(resolve, state.mode === 'recorded' ? 850 : 300));
   }
-  state.playing = false; setBusy(false);
+  if(epoch===playEpoch){state.playing = false; setBusy(false);}
 }
 function showCharacter(id) {
   const character = CAST.find(item => item.id === id);
@@ -171,7 +173,14 @@ $('#scene-picker').addEventListener('click', event => {
   if (!button || state.busy || state.playing) return;
   state.scene = button.dataset.scene; startScene();
 });
-$('#team-rail').addEventListener('click', event => { const button = event.target.closest('[data-role]'); if (button) showCharacter(button.dataset.role); });
+$('#crew-rail').addEventListener('click', event => { const button = event.target.closest('[data-role]'); if (button && strategy.isMissionOpen()) showCharacter(button.dataset.role); });
+function missionFocus(open){
+  if(!open){playEpoch++;state.playing=false;setBusy(state.busy);}
+  strategy.focusMission(open);renderTeam();
+}
+for(const link of document.querySelectorAll('a[href="#mission-center"]'))link.addEventListener('click',event=>{event.preventDefault();missionFocus(true);$('#mission-panel').scrollIntoView({block:'nearest'});});
+for(const link of document.querySelectorAll('a[href="#village-play"]'))link.addEventListener('click',()=>missionFocus(false));
+$('#close-mission').addEventListener('click',()=>{missionFocus(false);document.querySelector('.mission-shortcut').focus();});
 $('#guide-button').addEventListener('click', () => $('#guide-dialog').showModal());
 $('#tools-help').addEventListener('click', () => showCharacter('pip'));
 $('#next-button').addEventListener('click', nextDecision);

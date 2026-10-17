@@ -20,6 +20,7 @@ test('a chief can build, upgrade, trade, save, pause and reset the village',asyn
   await page.getByRole('button',{name:'Trade 16 coins for 8 food',exact:true}).click();
   assert.equal(Number(await page.locator('#resource-food').textContent()),food+8);
   const beforeMission=Number(await page.locator('#resource-gold').textContent());
+  await page.getByRole('link',{name:'AI missions',exact:true}).click();
   await page.getByRole('button',{name:'Play the complete scene',exact:true}).click();
   await page.getByRole('button',{name:'Scene complete',exact:false}).waitFor({timeout:45000});
   assert.equal(Number(await page.locator('#resource-gold').textContent()),beforeMission+40);
