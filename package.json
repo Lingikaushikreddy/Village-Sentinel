@@ -4,12 +4,18 @@
   "private": true,
   "type": "module",
   "description": "A playable illustrated village showing evidence-first agent decisions",
-  "engines": { "node": ">=22.13.0" },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "start": "node web/server.mjs",
     "dev": "node --watch web/server.mjs",
     "test": "node --test web/tests/*.test.mjs",
     "game": "bash scripts/start-game.sh",
-    "setup:engine": "npm --prefix engine ci --ignore-scripts"
+    "setup:engine": "npm --prefix engine ci --ignore-scripts",
+    "test:browser": "node web/browser-qa.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }

@@ -132,3 +132,13 @@ test('the live-call ceiling persists and permits replay of an already completed 
   await assert.rejects(game.step(run.id, { commandId: 'over-limit', expectedVersion: 1 }), error => error.status === 429);
   assert.deepEqual(await game.step(run.id, command), result);
 });
+
+test('the consequence describes the executed event rather than a generic acknowledgement', async t => {
+  const game = await setup(t);
+  const run = game.create({ scene: 'notice', mode: 'recorded' });
+  const next = await game.step(run.id, { commandId: 'explain-move', expectedVersion: 0 });
+  const outcome = next.history[0].consequence;
+  assert.equal(outcome.detail, 'Mira travels to market to check the claim.');
+  assert.deepEqual(outcome.locationChange, { from: 'farm', to: 'market' });
+  assert.equal(outcome.events[0].type, 'move');
+});

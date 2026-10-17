@@ -1,0 +1,188 @@
+import { CAST, portrait, toolName, toolIcon, escapeHTML as esc } from './characters.mjs';
+import { renderVillage } from './village.mjs';
+
+const $ = selector => document.querySelector(selector);
+const state = { scene: 'notice', mode: 'recorded', run: null, scenes: [], health: {}, busy: false, playing: false, token: '' };
+const sceneIcons = {
+  notice: '<path d="M7 5h17v23H7zM11 10h9m-9 5h9m-9 5h6M4 8H2v23h18v-1"/><path d="m19 2 5 3"/>',
+  message: '<path d="M3 6h26v17H17l-7 6v-6H3zM8 11h16M8 16h11"/>',
+  grain: '<path d="M16 28V7m0 8C8 17 5 12 7 7c6 0 10 3 9 8Zm0 6c-8 2-12-3-10-8 6 0 11 3 10 8Zm0-6c8 2 11-3 9-8-6 0-10 3-9 8Zm0 6c8 2 12-3 10-8-6 0-11 3-10 8ZM16 9c-5-5-3-9 0-11 4 4 5 8 0 11Z"/>',
+};
+async function api(path, body) {
+  const response = await fetch(path, body === undefined ? {} : {
+    method: 'POST', headers: { 'content-type': 'application/json', ...(state.token ? { 'x-live-token': state.token } : {}) }, body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) throw Error(data.error ?? `Request failed (${response.status})`);
+  return data;
+}
+function error(message) { $('#error').textContent = message ?? ''; $('#error').hidden = !message; }
+const last = () => state.run?.history.at(-1);
+const isDegraded = entry => Boolean(entry?.trace?.bedrock?.error || entry?.trace?.decider?.error || entry?.trace?.degraded || entry?.trace?.route?.degraded);
+function setBusy(busy) {
+  state.busy = busy;
+  document.body.classList.toggle('busy', busy);
+  $('#mode').disabled = busy || state.playing;
+  for (const button of document.querySelectorAll('.scene-button')) button.disabled = busy || state.playing;
+  $('#restart-button').disabled = busy || state.playing;
+  $('#next-button').disabled = busy || state.playing || !state.run || state.run.status === 'completed' || Boolean(state.run.lastError);
+  $('#play-button').disabled = !state.run || state.run.status === 'completed' || Boolean(state.run.lastError) || (busy && !state.playing);
+  $('#play-button').textContent = state.playing ? 'Ⅱ' : '▷';
+  $('#play-button').setAttribute('aria-label', state.playing ? 'Pause after the current decision' : 'Play the complete scene');
+  $('#next-text').textContent = busy ? (state.mode === 'live' ? 'Pip is choosing…' : 'Replaying the decision…') : state.run?.status === 'completed' ? 'Scene complete' : 'Next decision';
+  renderTeam();
+}
+function renderScenes() {
+  $('#scene-picker').innerHTML = state.scenes.map(scene => `<button class="scene-button" data-scene="${esc(scene.id)}" aria-pressed="${state.scene === scene.id}" aria-label="${esc(scene.title)}"><span class="scene-illustration" aria-hidden="true"><svg viewBox="0 0 32 32">${sceneIcons[scene.icon]}</svg></span><span><strong>${esc(scene.title)}</strong><small>${esc(scene.subtitle)}</small></span></button>`).join('');
+}
+function teamMessages() {
+  const entry = last();
+  const mira = state.run?.world.agents.find(a => a.id === 'mira');
+  const calls = state.run?.history.filter(item => item.trace?.bedrock?.action).length ?? 0;
+  const bea = entry?.trace?.bedrock;
+  return {
+    mira: mira ? `${mira.inventory.coins} coins · ${mira.inventory.grain} grain` : 'Needs supplies at a fair price',
+    pip: state.busy ? (state.mode === 'recorded' ? 'Reading a saved model result' : 'Making a new model decision') : entry?.originalChoice ? toolName(entry.originalChoice) : entry?.provider.decider === 'unavailable' ? 'Decider unavailable' : 'Ready to compare the tools',
+    bea: bea?.mode === 'live' ? 'Live Bedrock response' : bea?.mode === 'stub' ? 'Offline stand-in used' : state.health.bedrock_mode === 'live' && state.mode === 'live' ? 'Ready if the choice is difficult' : 'Offline stand-in · AWS pending',
+    gus: entry ? `${state.run.history.length} actions applied to the world` : 'Keeping world actions valid',
+    luna: state.mode === 'recorded' ? '0 new model calls' : `${calls} Bedrock ${calls === 1 ? 'call' : 'calls'} · ${entry?.provider?.bedrock === 'stub' ? 'simulated usage' : 'usage recorded'}`,
+    nimbus: 'Local computer · AWS pending',
+  };
+}
+function renderTeam() {
+  const messages = teamMessages();
+  const active = state.busy ? 'pip' : last()?.trace?.bedrock?.action ? 'bea' : last() ? 'gus' : 'mira';
+  $('#team-rail').innerHTML = CAST.map(character => `<button class="team-card ${state.busy && character.id === 'pip' ? 'active-working' : ''}" data-role="${character.id}" data-active="${character.id === active}" aria-label="Meet ${character.name}">${portrait(character.id)}<strong>${character.name}</strong><span class="role-name">${esc(character.job)}</span><small>${esc(messages[character.id])}</small></button>`).join('');
+}
+function renderDecision(entry) {
+  const result = $('#decision-result');
+  result.hidden = !entry;
+  if (!entry) {
+    $('#decision-flow').innerHTML = '<p class="empty-note">Take a step to see the evidence behind the action.</p>';
+    $('#trace-detail').innerHTML = '<p class="empty-note">Waiting for the first decision.</p>';
+    return;
+  }
+  const degraded = isDegraded(entry);
+  result.classList.toggle('degraded', degraded);
+  result.innerHTML = `<strong>${degraded ? 'The agent used a fallback' : toolName(entry.returnedAction)}</strong><span>${esc(entry.consequence.detail)}</span>${entry.trace?.bedrock?.mode === 'stub' ? '<p class="result-note">Bea used the offline stand-in, not a live Bedrock model.</p>' : ''}`;
+  const policy = entry.trace?.route;
+  const routeNote = degraded ? 'Provider failure or limit. This is a degraded decision.' : entry.trace?.tier === 3 ? (entry.trace.bedrock?.mode === 'stub' ? 'The difficult choice went to the labeled offline stand-in.' : 'The difficult choice went to Amazon Bedrock.') : policy?.tier === 2 ? 'The application’s uncertainty policy requested investigation.' : 'The application passed through the model’s choice.';
+  $('#decision-flow').innerHTML = `<article class="flow-step">${portrait('pip')}<div><p class="flow-label">Pip’s original choice</p><strong>${esc(toolName(entry.originalChoice))}</strong><p>${entry.originalChoice ? `Confidence ${Number(entry.trace.decider?.confidence ?? 0).toFixed(2)}. ` : ''}${entry.provider.decider === 'recorded' ? 'A real saved Decider result.' : entry.provider.decider === 'live' ? 'A new local Decider result.' : 'Decider was unavailable.'}</p></div></article><article class="flow-step ${degraded ? 'degraded' : ''}">${portrait(entry.trace?.tier === 3 ? 'bea' : 'gus')}<div><p class="flow-label">After the routing policy</p><strong>${esc(toolName(entry.returnedAction))}</strong><p>${esc(routeNote)}</p></div></article><article class="flow-step">${portrait('gus')}<div><p class="flow-label">Gus’s world consequence</p><strong>Applied to ${esc(entry.actor.name)}’s world</strong><p>${esc(entry.consequence.detail)}</p></div></article>`;
+  const probabilities = entry.trace?.decider?.probabilities ?? {};
+  const memories = (entry.observation?.memories ?? []).filter(m => /verif|inspect|source|grain|rule|notice|stock/i.test(m.text)).slice(-4);
+  $('#trace-detail').innerHTML = `<div class="trace-columns"><div><h3>The model’s actual probability vector</h3>${Object.keys(probabilities).length ? Object.entries(probabilities).map(([key, probability]) => `<div class="prob-row"><span>${esc(toolName(key))}</span><div class="prob-track"><i data-probability="${Number(probability)}"></i></div><span class="prob-number">${(Number(probability) * 100).toFixed(1)}%</span></div>`).join('') : '<p class="empty-note">No Decider vector for this decision.</p>'}<p class="confidence-note">Confidence is a rescaled top probability, not a guarantee of correctness. The explanation above is interface text, not prose generated by Decider.</p></div><div><h3>What the resident could observe</h3>${memories.map(memory => `<p class="evidence-item">Tick ${esc(memory.tick)}: ${esc(memory.text)}</p>`).join('') || '<p class="evidence-item">The original claim and public village rules were available.</p>'}</div></div><pre>${esc(JSON.stringify({ decisionId: entry.decisionId, inputHash: entry.inputHash, originalChoice: entry.originalChoice, returnedAction: entry.returnedAction, provider: entry.provider, trace: entry.trace, consequence: entry.consequence }, null, 2))}</pre>`;
+  for (const bar of document.querySelectorAll('[data-probability]')) bar.style.width = `${Math.max(0, Math.min(1, Number(bar.dataset.probability))) * 100}%`;
+}
+function render() {
+  const run = state.run;
+  if (!run) return;
+  const entry = last();
+  const pending = run.pending;
+  const resident = pending?.you ?? entry?.actor;
+  $('#tick').textContent = `Tick ${run.world.tick} / ${run.maxTicks}`;
+  $('#village-title').textContent = run.status === 'completed' ? 'Another day in the village' : pending?.allowedActions.length === 2 ? 'The evidence is in' : entry?.returnedAction === 'check_evidence' ? 'Following the evidence' : 'A message has arrived';
+  $('#map-status').textContent = run.status === 'completed' ? 'This world can be replayed and verified.' : 'The world waits between decisions.';
+  $('#resident-label').textContent = `${resident?.name ?? 'The villager'} ${run.status === 'completed' ? 'finished the day' : 'has a choice to make'}`;
+  const oldPortrait = $('.speaker-heading>.portrait, .speaker-heading>.resident-initial');
+  if (resident?.id === 'mira') oldPortrait.outerHTML = portrait('mira', 'portrait-small');
+  else oldPortrait.outerHTML = `<span class="resident-initial" aria-hidden="true">${esc(resident?.name?.[0] ?? 'V')}</span>`;
+  $('#claim').textContent = pending?.claim ?? entry?.claim ?? 'The scene is complete.';
+  $('#step-label').textContent = pending?.allowedActions.length === 2 ? 'After inspection' : run.status === 'completed' ? 'The consequence' : 'The claim';
+  $('#tools').innerHTML = ['accept_claim', 'reject_claim', 'check_evidence'].map(action => `<span class="tool-chip ${!(pending?.allowedActions ?? entry?.allowedActions ?? []).includes(action) ? 'unavailable' : ''} ${entry?.returnedAction === action ? 'selected' : ''}"><span class="tool-symbol" aria-hidden="true">${toolIcon(action)}</span>${action === 'accept_claim' ? 'Accept' : action === 'reject_claim' ? 'Decline' : 'Check'}</span>`).join('');
+  $('#operation-badge').textContent = state.mode === 'recorded' ? 'Recorded' : entry?.provider.decider === 'unavailable' ? 'Degraded decision' : 'Live Decider';
+  $('#operation-badge').classList.toggle('live', state.mode === 'live');
+  $('#truth-note').textContent = state.mode === 'recorded' ? 'Real saved Decider decisions. Bedrock stand-in. No new model calls.' : state.health.bedrock_mode === 'live' ? 'New Decider calls. Difficult choices can call live Bedrock.' : 'New Decider calls. Bedrock is an offline stand-in; AWS is pending.';
+  $('#export-link').href = `/api/runs/${run.id}/export`;
+  $('#history').innerHTML = run.history.length ? [...run.history].reverse().map(item => `<li data-decision="${esc(item.decisionId)}"><span class="history-tick">Tick ${item.tick}</span><span><strong>${esc(item.actor.name)}: ${esc(toolName(item.returnedAction))}</strong><br>${esc(item.consequence.detail)}</span><span>${item.provider.decider === 'recorded' ? 'Recorded' : 'New call'}${item.trace?.bedrock?.mode === 'stub' ? ' · Bedrock stand-in' : ''}</span></li>`).join('') : '<li class="empty-note">The village is ready for its first choice.</li>';
+  renderVillage($('#village'), run.world, pending?.you.id ?? entry?.actor.id);
+  renderDecision(entry);
+  renderScenes();
+  setBusy(state.busy);
+  if (run.lastError) error(run.lastError);
+}
+async function refreshHealth() {
+  try { state.health = await api('/api/health'); }
+  catch { state.health = { connected: false }; }
+  const liveReady = state.health.connected && state.health.liveEnabled && Boolean(state.health.decider);
+  $('#mode option[value=live]').disabled = !liveReady;
+  $('#mode-note').textContent = state.mode === 'recorded' ? 'Recorded Decider · Bedrock stand-in' : state.health.bedrock_mode === 'live' ? 'New Decider calls · Bedrock enabled' : 'New Decider calls · Bedrock stand-in';
+  $('#host-chip').innerHTML = '<span class="status-dot"></span>Local village';
+  renderTeam();
+}
+async function startScene() {
+  if (state.busy) return;
+  error(); setBusy(true);
+  try { state.run = await api('/api/runs', { scene: state.scene, mode: state.mode }); render(); }
+  catch (problem) {
+    if (state.run) { state.mode = state.run.mode; state.scene = state.run.scene; $('#mode').value = state.mode; render(); }
+    error(problem.message);
+  }
+  finally { setBusy(false); }
+}
+async function nextDecision() {
+  if (state.busy || !state.run || state.run.status === 'completed') return false;
+  error(); setBusy(true);
+  try {
+    state.run = await api(`/api/runs/${state.run.id}/step`, { commandId: crypto.randomUUID(), expectedVersion: state.run.version });
+    render();
+    return true;
+  } catch (problem) {
+    state.playing = false;
+    try { state.run = await api(`/api/runs/${state.run.id}`); render(); } catch { /* retain known last state */ }
+    error(problem.message);
+    return false;
+  } finally { setBusy(false); }
+}
+async function playScene() {
+  if (state.playing) { state.playing = false; setBusy(state.busy); return; }
+  state.playing = true; setBusy(false);
+  while (state.playing && state.run?.status !== 'completed') {
+    if (!(await nextDecision())) break;
+    await new Promise(resolve => setTimeout(resolve, state.mode === 'recorded' ? 850 : 300));
+  }
+  state.playing = false; setBusy(false);
+}
+function showCharacter(id) {
+  const character = CAST.find(item => item.id === id);
+  if (!character) return;
+  $('#character-content').innerHTML = `<div class="character-detail">${portrait(id)}<div><h2 id="character-title">${character.name}</h2><p>${esc(character.role)}</p></div></div><p class="character-description">${esc(character.description)}</p><div class="character-live-note"><strong>In this scene</strong>${esc(teamMessages()[id])}</div>`;
+  $('#character-dialog').showModal();
+}
+$('#scene-picker').addEventListener('click', event => {
+  const button = event.target.closest('[data-scene]');
+  if (!button || state.busy || state.playing) return;
+  state.scene = button.dataset.scene; startScene();
+});
+$('#team-rail').addEventListener('click', event => { const button = event.target.closest('[data-role]'); if (button) showCharacter(button.dataset.role); });
+$('#guide-button').addEventListener('click', () => $('#guide-dialog').showModal());
+$('#tools-help').addEventListener('click', () => showCharacter('pip'));
+$('#next-button').addEventListener('click', nextDecision);
+$('#play-button').addEventListener('click', playScene);
+$('#restart-button').addEventListener('click', startScene);
+$('#mode').addEventListener('change', async event => {
+  if (event.target.value === 'live' && state.health.liveRequiresToken && !state.token) {
+    $('#token-dialog').showModal(); event.target.value = state.mode; return;
+  }
+  state.mode = event.target.value; await startScene(); await refreshHealth();
+});
+$('#token-form').addEventListener('submit', async event => {
+  event.preventDefault(); state.token = $('#live-token').value; $('#live-token').value = '';
+  $('#token-dialog').close(); state.mode = 'live'; $('#mode').value = 'live'; await startScene(); await refreshHealth();
+});
+for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => button.closest('dialog').close());
+for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('click', event => { if (event.target === dialog && (event.clientX < dialog.getBoundingClientRect().left || event.clientX > dialog.getBoundingClientRect().right || event.clientY < dialog.getBoundingClientRect().top || event.clientY > dialog.getBoundingClientRect().bottom)) dialog.close(); });
+
+try {
+  state.scenes = await api('/api/scenes');
+  renderScenes(); renderTeam();
+  await refreshHealth();
+  await startScene();
+  if (state.health.liveEnabled && !state.health.connected) {
+    let checks = 0;
+    const timer = setInterval(async () => {
+      await refreshHealth();
+      if (state.health.connected || ++checks >= 40) clearInterval(timer);
+    }, 3000);
+    window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
+  }
+} catch (problem) { error(`The village could not load. ${problem.message}`); }

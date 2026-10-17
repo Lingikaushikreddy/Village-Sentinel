@@ -78,6 +78,9 @@ export class GameManager {
       let next = advance(state.run, undefined, toSocialDecision(state.run, context, request, answer, 'Village Sentinel'));
       const applied = next.decisions.findLast(item => item.actor === request.you.id && item.tick === request.tick + 1);
       const after = next.snapshots.at(-1);
+      const actionEvents = next.events.filter(item => item.tick === request.tick + 1 && item.actor === request.you.id);
+      const from = before.agents.find(a => a.id === request.you.id).location;
+      const to = after.agents.find(a => a.id === request.you.id).location;
       const oldInventory = before.agents.find(a => a.id === request.you.id).inventory;
       const newInventory = after.agents.find(a => a.id === request.you.id).inventory;
       const delta = Object.fromEntries(Object.keys(oldInventory).map(k => [k, newInventory[k] - oldInventory[k]]));
@@ -89,7 +92,11 @@ export class GameManager {
         allowedActions: request.allowedActions, observation: request.observation, inputHash: result.inputHash ?? null,
         originalChoice: result.trace?.decider?.choice ?? null, returnedAction: answer.action,
         summary: answer.summary, usage: answer.usage ?? {}, trace: result.trace, provider: result.provider,
-        consequence: { detail: applied?.outcome ?? 'See the world events for execution details.', inventoryDelta: delta, incidentId: context.incidentId },
+        consequence: {
+          detail: actionEvents.map(item => item.detail).join(' ') || applied?.outcome || 'See the world events for execution details.',
+          inventoryDelta: delta, locationChange: { from, to }, incidentId: context.incidentId,
+          events: actionEvents.map(({ tick, actor, type, detail }) => ({ tick, actor, type, detail })),
+        },
       }];
       const updated = { ...state, version: state.version + 1, run: next, history, provenance: { ...state.provenance, ...result.provider, operation: state.mode } };
       const output = snapshot(updated);
