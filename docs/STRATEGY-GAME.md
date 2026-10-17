@@ -12,4 +12,4 @@ The builder is deterministic application code. Its placement, economy, raids and
 
 All isometric terrain, buildings, villagers and raiders in this expansion are original code-drawn SVG. The game draws general inspiration from village strategy games; it contains no Brawl Stars or Clash of Clans assets, characters or branding, and has no multiplayer service.
 
-Run `npm run test:strategy` with the game server running to exercise building, upgrades, trade, mission rewards, save/reload, reset, pause/production, raid visuals and mobile layout. `SENTINEL_TEST_URL` can point to the static preview or public site. The test uses an isolated browser context and spends nothing.
+Run `npm run test:strategy` with the game server running to exercise building, upgrades, trade, mission rewards, save/reload, invalid-save recovery, browser Back navigation, reset, pause/production, raid visuals and mobile layout. `SENTINEL_TEST_URL` can point to the static preview or public site. The tests use isolated browser contexts and spend nothing.

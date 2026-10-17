@@ -47,3 +47,11 @@ test('a defended village wins only after its building and mission goals are met'
  s=command(s,{type:'mission',scene:'fair-trade',completed:true});assert.equal(s.status,'won');
  assert.deepEqual(advance(s,30),s);assert.throws(()=>command(s,{type:'trade'}),/complete/);
 });
+test('commands at the resource cap always produce reloadable saves', () => {
+ const s={...newVillage(),gold:99999,wood:99999,food:99999};
+ for(const action of [{type:'trade'},{type:'mission',scene:'notice',completed:true}]){
+  const next=command(s,action);assert.ok(next.gold<=99999&&next.wood<=99999&&next.food<=99999);
+  assert.deepEqual(restoreVillage(JSON.stringify(next)),next);
+ }
+ assert.equal(restoreVillage(JSON.stringify({...s,log:[]})),null);
+});

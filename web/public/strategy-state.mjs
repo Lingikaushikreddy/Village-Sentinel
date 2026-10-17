@@ -18,6 +18,7 @@ export const upgradeCost = b => ({gold:60*b.level,wood:30*b.level});
 export const freeLand = (s,x,y) => Number.isInteger(x)&&Number.isInteger(y)&&x>=2&&x<=9&&y>=2&&y<=9&&!s.buildings.some(b=>b.x===x&&b.y===y);
 function pay(s,gold,wood=0) { if(s.gold<gold||s.wood<wood) throw Error('Not enough resources. Let your farms, camp and trading post produce more.'); s.gold-=gold; s.wood-=wood; }
 function outcome(s) {
+ for(const resource of ['gold','wood','food'])s[resource]=Math.min(99999,s[resource]);
  if(s.integrity<=0){s.status='lost';note(s,'The village fell. Start a new village and build more watchtowers.');}
  else if(s.buildings.length>=8&&s.defended>=3&&s.missions.length>=1){s.status='won';note(s,'Village secured! Your settlement earned its Sentinel banner.');}
  return s;
@@ -55,7 +56,7 @@ export function advance(state,steps=1) {
   if(s.tick%5===0)for(const b of s.buildings){if(b.kind==='farm')s.food+=5*b.level;if(b.kind==='lumber')s.wood+=6*b.level;if(b.kind==='market')s.gold+=5*b.level;}
   if(s.tick%10===0){s.food=Math.max(0,s.food-4);if(s.food===0){s.integrity=Math.max(0,s.integrity-5);note(s,'Food is low. Build a farm or buy supplies.');}}
   if(s.tick%30===0){s.wave++;const threat=12+s.wave*8;if(defense(s)>=threat){s.defended++;s.gold+=15;note(s,`Raid ${s.wave} repelled! Your watchtowers earned 15 coins.`);}else{const loss=Math.min(35,10+threat-defense(s));s.integrity=Math.max(0,s.integrity-loss);note(s,`Raid ${s.wave} breached the walls: −${loss} integrity. Build or upgrade watchtowers.`);}}
-  s.gold=Math.min(99999,s.gold);s.wood=Math.min(99999,s.wood);s.food=Math.min(99999,s.food);outcome(s);
+  outcome(s);
  }
  return s;
 }
@@ -68,7 +69,7 @@ export function restoreVillage(raw) {
   for(const b of s.buildings){if(!b||!/^b[1-9]\d{0,2}$/.test(b.id)||!Object.hasOwn(BUILDINGS,b.kind)||!Number.isInteger(b.x)||!Number.isInteger(b.y)||b.x<2||b.x>9||b.y<2||b.y>9||!Number.isInteger(b.level)||b.level<1||b.level>3)return null;
    const cell=`${b.x},${b.y}`;if(cells.has(cell)||ids.has(b.id)||Number(b.id.slice(1))>=s.nextId)return null;cells.add(cell);ids.add(b.id);if(b.kind==='hall')halls++;
   }
-  if(halls!==1||!Array.isArray(s.log)||s.log.length>12||s.log.some(e=>!e||!number(e.tick,s.tick)||typeof e.text!=='string'||e.text.length>240))return null;
+  if(halls!==1||!Array.isArray(s.log)||s.log.length<1||s.log.length>12||s.log.some(e=>!e||!number(e.tick,s.tick)||typeof e.text!=='string'||e.text.length>240))return null;
   return s;
  }catch{return null;}
 }

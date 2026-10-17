@@ -54,6 +54,6 @@ export function startStrategy(){
  let narrow=false;const map=$('#strategy-map');
  const resize=new ResizeObserver(()=>{const next=map.clientWidth<540;if(next&&!narrow)map.scrollLeft=(map.scrollWidth-map.clientWidth)/2;narrow=next;});
  resize.observe(map);
- window.addEventListener('pagehide',()=>{clearInterval(timer);resize.disconnect();},{once:true});render();
+ window.addEventListener('pagehide',event=>{if(!event.persisted){clearInterval(timer);resize.disconnect();}});render();
  return { mission(run){if(run.status==='completed'&&!s.missions.includes(run.scene)&&s.status==='playing')act({type:'mission',scene:run.scene,completed:true});} };
 }
