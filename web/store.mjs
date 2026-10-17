@@ -7,7 +7,9 @@ export class GameError extends Error {
 }
 
 export class GameStore {
-  constructor(path) {
+  constructor(path, { liveLimit = 120 } = {}) {
+    if (!Number.isSafeInteger(liveLimit) || liveLimit < 1 || liveLimit > 500) throw new GameError('liveLimit must be an integer from 1 to 500');
+    this.liveLimit = liveLimit;
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
@@ -45,6 +47,12 @@ export class GameStore {
       if (state.lastError) throw new GameError('The last decision failed; start a fresh scene', 409);
       if (this.busy(id)) throw new GameError('A decision is already pending', 409);
       if (state.run.status === 'completed') throw new GameError('This scene is complete', 409);
+      if (state.mode === 'live') {
+        const usage = this.db.prepare(`SELECT COUNT(*) AS n, SUM(CASE WHEN c.status='pending' THEN 1 ELSE 0 END) AS pending
+          FROM commands c JOIN games g ON g.id=c.run WHERE json_extract(g.state,'$.mode')='live'`).get();
+        if (usage.pending) throw new GameError('The host is already working on a live decision', 409);
+        if (usage.n >= this.liveLimit) throw new GameError('The host live-call allowance is exhausted; recorded walkthroughs remain available', 429);
+      }
       this.db.prepare("INSERT INTO commands VALUES(?,?,?,'pending',NULL)").run(id, command.commandId, input);
       return { state };
     });

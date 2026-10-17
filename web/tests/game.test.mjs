@@ -106,3 +106,29 @@ test('scene validation and command validation do not silently choose another sce
   const run = game.create({ scene: 'notice', mode: 'live' });
   await assert.rejects(game.step(run.id, { commandId: '', expectedVersion: false }), /command|version/i);
 });
+
+test('the host admits only one live inference across different runs', async t => {
+  let release;
+  let calls = 0;
+  const gate = new Promise(resolve => { release = resolve; });
+  const game = await setup(t, async () => { if (++calls === 1) await gate; return decline(); });
+  const first = game.create({ scene: 'notice', mode: 'live' });
+  const second = game.create({ scene: 'notice', mode: 'live' });
+  const pending = game.step(first.id, { commandId: 'global-first', expectedVersion: 0 });
+  try {
+    await assert.rejects(game.step(second.id, { commandId: 'global-second', expectedVersion: 0 }), error => error.status === 409);
+  } finally { release(); await pending; }
+});
+
+test('the live-call ceiling persists and permits replay of an already completed command', async t => {
+  const { GameManager } = await import('../game.mjs');
+  const { GameStore } = await import('../store.mjs');
+  const store = new GameStore(':memory:', { liveLimit: 1 });
+  t.after(() => store.close());
+  const game = new GameManager({ store, source: decline });
+  const run = game.create({ scene: 'notice', mode: 'live' });
+  const command = { commandId: 'limited-call', expectedVersion: 0 };
+  const result = await game.step(run.id, command);
+  await assert.rejects(game.step(run.id, { commandId: 'over-limit', expectedVersion: 1 }), error => error.status === 429);
+  assert.deepEqual(await game.step(run.id, command), result);
+});
