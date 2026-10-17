@@ -1,4 +1,4 @@
-import { BUILDINGS, command, defense, freeLand, upgradeCost } from './strategy-state.mjs?v=c141c8b983cd';
+import { BUILDINGS, command, defense, freeLand, upgradeCost } from './strategy-state.mjs?v=9fe5a700fe75';
 
 export const CREW = [
  {id:'mira',name:'Mira',job:'Farmer',resource:'food',site:'farm',x:4,y:6},

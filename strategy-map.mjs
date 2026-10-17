@@ -1,8 +1,8 @@
-import { BUILDINGS, freeLand } from './strategy-state.mjs?v=c141c8b983cd';
-import { escapeHTML as esc } from './characters.mjs?v=c141c8b983cd';
-import { CREW } from './crew-state.mjs?v=c141c8b983cd';
-import { buildingArt, characterArt, terrainURL } from './game-art.mjs?v=c141c8b983cd';
-export { buildingArt } from './game-art.mjs?v=c141c8b983cd';
+import { BUILDINGS, freeLand } from './strategy-state.mjs?v=9fe5a700fe75';
+import { escapeHTML as esc } from './characters.mjs?v=9fe5a700fe75';
+import { CREW } from './crew-state.mjs?v=9fe5a700fe75';
+import { buildingArt, characterArt, terrainURL } from './game-art.mjs?v=9fe5a700fe75';
+export { buildingArt } from './game-art.mjs?v=9fe5a700fe75';
 export const point=(x,y)=>[768+(x-y)*66,135+(x+y)*34];
 const diamond=(x,y)=>`${x},${y-34} ${x+66},${y} ${x},${y+34} ${x-66},${y}`;
 function terrain(){let tiles='';
