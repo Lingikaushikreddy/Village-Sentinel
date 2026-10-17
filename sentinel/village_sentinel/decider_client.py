@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import dataclass
@@ -48,6 +49,8 @@ class DeciderClient:
         self.timeout_s = timeout_s
         self._engine = None
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="decider")
+        self._admission_lock = threading.Lock()
+        self._pending = None
         self.backend = "http" if self.url else "in-process"
         if not self.url:
             self._load(checkpoint or os.environ.get("SENTINEL_DECIDER_CHECKPOINT") or MODEL_ID, device)
@@ -79,17 +82,22 @@ class DeciderClient:
         ans = data["answers"]["action"]
         return dict(ans["probabilities"]), int(data.get("usage", {}).get("input_tokens", 0))
 
-    def ask(self, state: "dict[str, Any] | str", criteria: dict[str, str]) -> DeciderAnswer:
+    def ask(self, state: "dict[str, Any] | str", criteria: dict[str, str], *, timeout_s: float | None = None) -> DeciderAnswer:
         """`state` may be the projected dict (rendered by Strands as indented JSON) or an
         already-rendered string (the service passes `render_state_text(state)`)."""
         from evidence_first_tool_router import DeciderReading
         started = time.perf_counter()
         fn = self._ask_http if self.url else self._ask_inprocess
-        fut = self._pool.submit(fn, state, criteria)
+        limit = self.timeout_s if timeout_s is None else timeout_s
+        with self._admission_lock:
+            if self._pending is not None and not self._pending.done():
+                raise DeciderUnavailable("a previous Decider inference is still running; no new call was queued")
+            fut = self._pool.submit(fn, state, criteria)
+            self._pending = fut
         try:
-            probs, tokens = fut.result(timeout=self.timeout_s)
+            probs, tokens = fut.result(timeout=limit)
         except FutureTimeout as exc:
-            raise DeciderUnavailable(f"decider exceeded {self.timeout_s}s") from exc
+            raise DeciderUnavailable(f"decider exceeded {limit}s") from exc
         except Exception as exc:
             raise DeciderUnavailable(f"decider failed: {type(exc).__name__}: {exc}") from exc
         latency = (time.perf_counter() - started) * 1000.0

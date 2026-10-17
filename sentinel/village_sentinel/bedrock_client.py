@@ -34,7 +34,10 @@ SYSTEM_PROMPT = (
 
 
 class BedrockUnavailable(RuntimeError):
-    pass
+    def __init__(self, message: str, *, charge_uncertain: bool = False, usage: dict | None = None) -> None:
+        super().__init__(message)
+        self.charge_uncertain = charge_uncertain
+        self.usage = usage
 
 
 def tool_spec(allowed_actions: list[str]) -> dict[str, Any]:
@@ -77,7 +80,7 @@ class BedrockAnswer:
 
 
 class BedrockClient:
-    def __init__(self, *, mode: str | None = None, model_id: str = DEFAULT_MODEL_ID, region: str | None = None, timeout_s: float = 20.0) -> None:
+    def __init__(self, *, mode: str | None = None, model_id: str = DEFAULT_MODEL_ID, region: str | None = None, timeout_s: float = 8.0) -> None:
         self.mode = (mode or os.environ.get("SENTINEL_BEDROCK_MODE") or "stub").lower()
         self.model_id = model_id
         self.timeout_s = timeout_s
@@ -91,12 +94,17 @@ class BedrockClient:
             self._client = boto3.client(
                 "bedrock-runtime",
                 region_name=region or os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1",
-                config=Config(connect_timeout=5, read_timeout=timeout_s, retries={"max_attempts": 1}),
+                config=Config(connect_timeout=3, read_timeout=timeout_s, retries={"total_max_attempts": 1}),
             )
         elif self.mode not in {"stub", "off"}:
             raise ValueError(f"unknown SENTINEL_BEDROCK_MODE {self.mode!r}")
 
     def estimate_uusd(self, state_text: str) -> int:
+        if self.mode == "live":
+            # A conservative byte-based ceiling, including the system/tool framing.
+            framing = SYSTEM_PROMPT + json.dumps(tool_spec(["accept_claim", "reject_claim", "check_evidence"]))
+            input_ceiling = len(state_text.encode("utf-8")) + len(framing.encode("utf-8")) + 500
+            return micro_usd(input_ceiling, MAX_OUTPUT_TOKENS)
         return micro_usd(estimate_tokens(state_text), MAX_OUTPUT_TOKENS)
 
     def decide(self, state: "dict[str, Any] | str", allowed_actions: list[str]) -> BedrockAnswer:
@@ -118,11 +126,17 @@ class BedrockClient:
                 inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.0},
             )
         except Exception as exc:  # botocore errors, timeouts
-            raise BedrockUnavailable(f"{type(exc).__name__}: {exc}") from exc
+            raise BedrockUnavailable(f"{type(exc).__name__}: {exc}", charge_uncertain=True) from exc
         latency = (time.perf_counter() - started) * 1000.0
         usage = resp.get("usage", {})
-        inp, out = int(usage.get("inputTokens", 0)), int(usage.get("outputTokens", 0))
-        action, rationale = parse_tool_use(resp, allowed_actions)
+        if not isinstance(usage, dict) or any(type(usage.get(key)) is not int or usage[key] < 0 for key in ("inputTokens", "outputTokens")):
+            raise BedrockUnavailable("Provider returned invalid usage; reservation retained", charge_uncertain=True)
+        inp, out = usage["inputTokens"], usage["outputTokens"]
+        billed_usage = {"inputTokens": inp, "outputTokens": out, "costUSD": micro_usd(inp, out) / 1e6}
+        try:
+            action, rationale = parse_tool_use(resp, allowed_actions)
+        except (BedrockUnavailable, AttributeError, TypeError, ValueError) as exc:
+            raise BedrockUnavailable(str(exc), usage=billed_usage) from exc
         return BedrockAnswer(action, rationale, inp, out, micro_usd(inp, out), latency, self.model_id, "live")
 
     def _stub(self, state: dict[str, Any], allowed_actions: list[str]) -> BedrockAnswer:

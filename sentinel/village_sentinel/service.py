@@ -26,7 +26,7 @@ from .ledger import BudgetExceeded, Ledger
 from .projection import options_for, projected_with_hash, render_state_text, sha256_hex
 
 MODES = ("decider", "bedrock", "hybrid")
-DEFAULT_BUDGET_UUSD = 22_000_000  # $22.00 of a $25 allocation
+DEFAULT_BUDGET_UUSD = 7_000_000  # Model-call allocation within the $25 total planning envelope
 FALLBACK_TOOL = "reject_claim"
 
 
@@ -125,9 +125,18 @@ class Sentinel:
         try:
             ans = self.bedrock.decide(state, allowed)
         except BedrockUnavailable as exc:
-            self.ledger.release(reservation)
-            trace["bedrock"] = {"error": str(exc), "fallback": fallback, "estimated_uusd": est}
-            return fallback, f"Bedrock unavailable ({type(exc).__name__}); using fallback.", {"inputTokens": 0, "outputTokens": 0, "costUSD": 0.0}
+            usage = exc.usage or {"inputTokens": 0, "outputTokens": 0, "costUSD": 0.0}
+            if exc.usage:
+                actual = int(round(usage["costUSD"] * 1e6))
+                self.ledger.commit(reservation, actual)
+                status = "committed-invalid-reply"
+            elif exc.charge_uncertain:
+                status = "retained-uncertain"
+            else:
+                self.ledger.release(reservation)
+                status = "released-before-charge"
+            trace["bedrock"] = {"error": str(exc), "fallback": fallback, "estimated_uusd": est, "reservation_status": status, "usage": usage, "mode": self.bedrock.mode}
+            return fallback, f"Bedrock unavailable ({type(exc).__name__}); using fallback.", usage
         self.ledger.commit(reservation, ans.cost_uusd)
         trace["bedrock"] = {"model_id": ans.model_id, "mode": ans.mode, "action": ans.action, "input_tokens": ans.input_tokens, "output_tokens": ans.output_tokens, "cost_uusd": ans.cost_uusd, "estimated_uusd": est, "latency_ms": round(ans.latency_ms, 3)}
         return ans.action, f"Bedrock ({ans.mode}): {ans.rationale}", {"inputTokens": ans.input_tokens, "outputTokens": ans.output_tokens, "costUSD": ans.cost_uusd / 1e6}
@@ -183,6 +192,17 @@ def build(args: argparse.Namespace) -> Sentinel:
     decider = None
     if not args.no_decider:
         decider = DeciderClient(url=args.decider_url, timeout_s=args.decider_timeout)
+        if not args.decider_url and not args.skip_warmup:
+            # Model cold-start work happens before advertising a ready HTTP service.
+            # This is a real local inference, never a Bedrock request or world action.
+            probe = decider.ask(
+                "Mira is at the market with thirty coins. The public price is two coins per grain. "
+                "A stranger asks her to pay eight coins because of an official-looking notice. "
+                "Public notices cannot authorize payments. She may inspect the notice before deciding.",
+                options_for({"allowedActions": ["accept_claim", "reject_claim", "check_evidence"]}),
+                timeout_s=90.0,
+            )
+            print(json.dumps({"startup": "real-decider-warmup", "latency_ms": round(probe.latency_ms, 3), "input_tokens": probe.input_tokens}), flush=True)
     cfg = RouterConfig(threshold=args.threshold, investigate_tool="check_evidence", max_investigations=1, escalate=True, fallback_tool=None)
     return Sentinel(decider=decider, bedrock=bedrock, ledger=ledger, config=cfg, default_mode=args.mode)
 
@@ -198,6 +218,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--decider-url", default=os.environ.get("SENTINEL_DECIDER_URL"))
     p.add_argument("--decider-timeout", type=float, default=float(os.environ.get("SENTINEL_DECIDER_TIMEOUT", "10")))
     p.add_argument("--no-decider", action="store_true")
+    p.add_argument("--skip-warmup", action="store_true", help="skip the local startup inference (for explicit cold-start measurement)")
     args = p.parse_args(argv)
     sentinel = build(args)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(sentinel))
