@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Village Sentinel review draft: one SSM-only host and a four-hour stop timer. Application installation and live inference are separate. Not yet validated in AWS.",
+  "Parameters": {
+    "VpcId": { "Type": "AWS::EC2::VPC::Id", "Description": "Existing VPC with DNS and internet egress" },
+    "SubnetId": { "Type": "AWS::EC2::Subnet::Id", "Description": "Existing public subnet in the selected VPC, with an internet route" },
+    "AmiId": { "Type": "AWS::EC2::Image::Id", "Description": "Reviewed Ubuntu 24.04 x86_64 AMI in this region, with SSM agent installed" },
+    "InstanceType": { "Type": "String", "Default": "m6i.xlarge", "AllowedValues": ["m6i.xlarge"], "Description": "CPU candidate only; verify quota, rate <= $0.25/hour and actual model feasibility first" },
+    "BedrockResourceArns": { "Type": "CommaDelimitedList", "Description": "Exact reviewed inference-profile and destination foundation-model ARNs; do not supply a wildcard" }
+  },
+  "Resources": {
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "No inbound network access; connect through SSM",
+        "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [],
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+    "Role": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": { "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Principal": { "Service": "ec2.amazonaws.com" }, "Action": "sts:AssumeRole" }] },
+        "ManagedPolicyArns": [{ "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore" }],
+        "Policies": [{ "PolicyName": "InvokeReviewedBedrockModel", "PolicyDocument": { "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Action": ["bedrock:InvokeModel"], "Resource": { "Ref": "BedrockResourceArns" } }] } }]
+      }
+    },
+    "InstanceProfile": { "Type": "AWS::IAM::InstanceProfile", "Properties": { "Roles": [{ "Ref": "Role" }] } },
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": { "Ref": "AmiId" },
+        "InstanceType": { "Ref": "InstanceType" },
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "InstanceInitiatedShutdownBehavior": "stop",
+        "MetadataOptions": { "HttpTokens": "required", "HttpPutResponseHopLimit": 1, "HttpEndpoint": "enabled" },
+        "NetworkInterfaces": [{ "DeviceIndex": "0", "AssociatePublicIpAddress": true, "SubnetId": { "Ref": "SubnetId" }, "GroupSet": [{ "Ref": "SecurityGroup" }] }],
+        "BlockDeviceMappings": [{ "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": 30, "VolumeType": "gp3", "Encrypted": true, "DeleteOnTermination": true } }],
+        "Tags": [{ "Key": "Name", "Value": "village-sentinel-demo" }, { "Key": "Project", "Value": "VillageSentinel" }],
+        "UserData": { "Fn::Base64": "#!/bin/bash\nset -eu\ncat >/etc/systemd/system/sentinel-autostop.service <<'UNIT'\n[Unit]\nDescription=Stop the approved demo session\n[Service]\nType=oneshot\nExecStart=/sbin/poweroff\nUNIT\ncat >/etc/systemd/system/sentinel-autostop.timer <<'UNIT'\n[Unit]\nDescription=Four-hour demo limit\n[Timer]\nOnBootSec=4h\nUnit=sentinel-autostop.service\n[Install]\nWantedBy=timers.target\nUNIT\nsystemctl daemon-reload\nsystemctl enable --now sentinel-autostop.timer\n" }
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceId": { "Value": { "Ref": "Instance" } },
+    "Access": { "Value": "SSM only; forward remote port 5173 after application setup. No public web endpoint is created." },
+    "CostReminder": { "Value": "Confirm EC2 is stopped after each session. Storage still costs money while stopped. Export evidence before terminating." }
+  }
+}

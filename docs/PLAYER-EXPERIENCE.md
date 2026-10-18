@@ -1,0 +1,21 @@
+# A cartoon village judges can understand
+
+The existing entry has the real Decider adapter and an offline evaluation bundle, but no playable web interface. Complete the previously planned interactive game using the current Python service and pinned Settlement testbed. Do not replace the existing agent with the older local starter.
+
+The central question is: **Can an AI village spot a scam without refusing a fair trade?** A visitor chooses The notice, The messenger, or The fair trade; starts a scene; then watches one real decision at a time. The screen follows claim, choice, investigation and consequence. The game pauses between decisions, and replay never calls either model.
+
+Six original teaching characters have distinct roles: Mira is a resident seeking supplies; Pip represents the actual Strands Decider 2B choice; Bea represents Bedrock generation and difficult choices; Gus represents engine permission checks and world execution; Luna represents usage accounting; Nimbus represents the host. They are not official AWS mascots. Other engine residents keep their actual names. A character lights up only for its corresponding stage, and its speech describes an actual state or a labeled illustration.
+
+Use the existing generated cast sheet as six CSS-clipped portraits without altering its pixels. Build an original SVG village with a market, granary, well, homes and meeting board. Position residents from the engine's current world frame. Cartoon movement interpolates real location changes; visual animation cannot advance the simulation or invent a model result. Respect reduced-motion preferences.
+
+Use a readable game palette: sky #BDE6F4, grass #CAE5AA, ink #243D36, teal #147E72, sunflower #F1BC4B and paper #FFFEF8. Rounded sans-serif typography, large scene controls and a village stage are the visual focus. Avoid a generic metrics dashboard. The primary explanation card stays next to the map; traces and probability vectors are expandable detail.
+
+Live and recorded operation are separate choices. A checked-in recorded walkthrough is available immediately, labeled with its provenance: real recorded Decider calls, Bedrock stub, local hardware. A live scene sends newly constructed requests to the running Python service. Until the user configures AWS, Bedrock remains visibly unavailable or a labeled stub; Nimbus says local computer. No control claims AWS readiness based merely on an environment variable. A provider failure is shown as degraded/failure even when the existing engine accepts a fallback action.
+
+Server-owned scene definitions, seed, provider URL and live-call allowance prevent browser input from choosing arbitrary upstream URLs or unlimited calls. Step commands have an ID and expected version; duplicates reuse a durable result, conflicting content/stale versions fail, and concurrent clicks cannot cause duplicate provider calls. State polling and replay do not start inference. Original model choice, routing policy, returned tool and executed consequence remain separate fields.
+
+The interface must work with keyboard controls, on narrow screens and without motion. Include a character guide, a short judge walkthrough, evidence export, an honest-offer control and explicit model/host labels. A public repository update is authorized by the user's request to complete this public project; paid AWS deployment still requires the account and a concrete resource proposal within the $25 planning limit.
+
+Implementation choices: plain browser modules, SVG and CSS, with a Node HTTP server and SQLite state; retain Python/Strands/boto3. The pinned npm package contains the engine's step API but does not export it at its root. Isolate its internal-file imports in one adapter, verify version 0.12.0, disclose this coupling and test deterministic replay. No new frontend framework is needed.
+
+Release addition: provide a public recorded-only GitHub Pages walkthrough while the AWS account is unavailable. Build it from engine-verified world prefixes and original saved traces, verify artifact hashes in the browser, and keep live inference disabled. A static replay is not an AWS agent deployment and cannot satisfy the live Bedrock requirement. Its host/character labels must say public replay, not local or AWS.

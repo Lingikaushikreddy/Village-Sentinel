@@ -13,7 +13,7 @@ dependencies = ["evidence-first-tool-router"]
 [project.optional-dependencies]
 decider = ["strands-decider @ git+https://github.com/strands-labs/strands-decider@930e6d5de16309be32579f5631a7369a3322140c"]
 bedrock = ["boto3>=1.35"]
-test = ["pytest>=8"]
+test = ["pytest>=8", "boto3>=1.35"]
 
 [tool.setuptools.packages.find]
 where = ["."]
