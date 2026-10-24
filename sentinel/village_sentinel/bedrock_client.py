@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -22,6 +23,10 @@ INPUT_USD_PER_MTOK = float(os.environ.get("SENTINEL_BEDROCK_INPUT_USD_PER_MTOK",
 OUTPUT_USD_PER_MTOK = float(os.environ.get("SENTINEL_BEDROCK_OUTPUT_USD_PER_MTOK", "5.00"))
 MAX_OUTPUT_TOKENS = 200
 PROMPT_OVERHEAD_TOKENS = 450  # system prompt + tool schema, measured once and padded
+# Client-side pacing for accounts with a low requests-per-minute quota (new accounts get
+# 10 RPM for Haiku 4.5). 0 disables pacing. One retry follows a ThrottlingException.
+MAX_RPM = float(os.environ.get("SENTINEL_BEDROCK_MAX_RPM", "0"))
+THROTTLE_RETRY_WAIT_S = 4.0
 
 TOOL_NAME = "decide_action"
 SYSTEM_PROMPT = (
@@ -85,6 +90,9 @@ class BedrockClient:
         self.model_id = model_id
         self.timeout_s = timeout_s
         self._client = None
+        self._min_interval_s = 60.0 / MAX_RPM if MAX_RPM > 0 else 0.0
+        self._next_call_at = 0.0
+        self._pace_lock = threading.Lock()
         if self.mode == "live":
             try:
                 import boto3
@@ -115,16 +123,36 @@ class BedrockClient:
             return self._stub(state, allowed_actions)
         return self._live(state, allowed_actions)
 
+    def _pace(self) -> None:
+        if self._min_interval_s:
+            with self._pace_lock:
+                now = time.monotonic()
+                if self._next_call_at > now:
+                    time.sleep(self._next_call_at - now)
+                self._next_call_at = time.monotonic() + self._min_interval_s
+
+    def _converse(self, state: dict[str, Any], allowed_actions: list[str]) -> dict[str, Any]:
+        return self._client.converse(
+            modelId=self.model_id,
+            system=[{"text": SYSTEM_PROMPT}],
+            messages=[{"role": "user", "content": [{"text": "STATE:\n" + (state if isinstance(state, str) else json.dumps(state, sort_keys=True, ensure_ascii=False))}]}],
+            toolConfig={"tools": [tool_spec(allowed_actions)], "toolChoice": {"tool": {"name": TOOL_NAME}}},
+            inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.0},
+        )
+
     def _live(self, state: dict[str, Any], allowed_actions: list[str]) -> BedrockAnswer:
+        # Pacing waits are excluded from the reported model latency.
+        self._pace()
         started = time.perf_counter()
         try:
-            resp = self._client.converse(
-                modelId=self.model_id,
-                system=[{"text": SYSTEM_PROMPT}],
-                messages=[{"role": "user", "content": [{"text": "STATE:\n" + (state if isinstance(state, str) else json.dumps(state, sort_keys=True, ensure_ascii=False))}]}],
-                toolConfig={"tools": [tool_spec(allowed_actions)], "toolChoice": {"tool": {"name": TOOL_NAME}}},
-                inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.0},
-            )
+            try:
+                resp = self._converse(state, allowed_actions)
+            except Exception as exc:
+                if type(exc).__name__ != "ThrottlingException" and "Throttling" not in str(exc):
+                    raise
+                time.sleep(THROTTLE_RETRY_WAIT_S)
+                started = time.perf_counter()
+                resp = self._converse(state, allowed_actions)
         except Exception as exc:  # botocore errors, timeouts
             raise BedrockUnavailable(f"{type(exc).__name__}: {exc}", charge_uncertain=True) from exc
         latency = (time.perf_counter() - started) * 1000.0
